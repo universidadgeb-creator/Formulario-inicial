@@ -1,6 +1,13 @@
-<title>Ficha de Bienvenida</title>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ficha de Bienvenida — Vivo 47 Center</title>
+<meta name="description" content="Formulario inicial para nuevos socios de Vivo 47 Center.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
 :root{
   --bg:#FAFAF9;
   --surface:#FFFFFF;
@@ -55,9 +62,15 @@ button{font-family:inherit;}
   max-width:720px;
   margin:0 auto;
   min-height:100vh;
+  min-height:100dvh;
   display:flex;
   flex-direction:column;
-  padding:0 24px 40px;
+  padding:0 20px calc(40px + env(safe-area-inset-bottom));
+  padding-left:calc(20px + env(safe-area-inset-left));
+  padding-right:calc(20px + env(safe-area-inset-right));
+}
+@media (min-width:520px){
+  .app{ padding-left:24px; padding-right:24px; }
 }
 
 /* ---- top bar ---- */
@@ -164,9 +177,10 @@ textarea{resize:vertical;min-height:110px;line-height:1.5;font-size:17px;}
 
 .chipwrap{display:flex;flex-wrap:wrap;gap:9px;}
 .chip{
-  border:1.5px solid var(--line);border-radius:999px;padding:9px 16px;
+  border:1.5px solid var(--line);border-radius:999px;padding:11px 16px;
   font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;background:var(--surface);
   transition:all .15s;
+  min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;
 }
 .chip.selected{background:var(--ink);border-color:var(--ink);color:var(--bg);}
 :root[data-theme="dark"] .chip.selected, @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.selected{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}}
@@ -279,7 +293,10 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 .status-msg.err{color:var(--danger);}
 
 .coach-link{
-  position:fixed;bottom:16px;right:18px;font-size:11.5px;color:var(--muted);
+  position:fixed;
+  bottom:calc(16px + env(safe-area-inset-bottom));
+  right:calc(18px + env(safe-area-inset-right));
+  font-size:11.5px;color:var(--muted);
   background:var(--surface);border:1px solid var(--line);padding:7px 12px;border-radius:999px;
   text-decoration:none;font-family:"IBM Plex Mono";opacity:.7;
 }
@@ -296,6 +313,8 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 
 [hidden]{display:none!important;}
 </style>
+</head>
+<body>
 
 <div class="app" id="formApp">
 
@@ -1021,3 +1040,5 @@ renderIntro();
 
 })();
 </script>
+</body>
+</html>
