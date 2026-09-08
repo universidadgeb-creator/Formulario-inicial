@@ -224,16 +224,13 @@ svg.silhouette{width:100%;max-width:160px;height:auto;}
 
 /* floor plan — spatial layout matching the real Center floor plan, rotated so the
    entrance sits at the bottom, the way a member sees it walking in */
-svg.floorplan{width:100%;max-width:280px;height:auto;}
-.gymzone{cursor:pointer;stroke:rgba(0,0,0,.28);stroke-width:1.5;transition:stroke .15s, stroke-width .15s, filter .15s;}
-.gymzone:hover{filter:brightness(1.12);}
-.gymzone.selected{stroke:var(--accent);stroke-width:5;}
+svg.floorplan{width:100%;max-width:320px;height:auto;}
 .gymzone-context{fill:var(--line);stroke:var(--bg);stroke-width:1.5;}
-.gymzone-label{font-size:7.4px;font-family:"IBM Plex Mono";fill:#fff;pointer-events:none;text-anchor:middle;}
-.gymzone-context-label{font-size:7.4px;font-family:"IBM Plex Mono";fill:var(--muted);pointer-events:none;text-anchor:middle;}
-.gymzone-check{fill:var(--accent);font-weight:700;pointer-events:none;}
+.gymzone-label{font-size:11px;font-family:"Archivo",sans-serif;font-weight:700;fill:var(--ink-soft);pointer-events:none;text-anchor:middle;}
+.gymzone-label.selected{fill:var(--accent-ink);}
+.gymzone-context-label{font-size:10px;font-family:"IBM Plex Mono";fill:var(--muted);pointer-events:none;text-anchor:middle;}
 .entrance{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:6 6;}
-.entrance-text{font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;fill:var(--muted);text-anchor:middle;pointer-events:none;}
+.entrance-text{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.05em;text-transform:uppercase;fill:var(--muted);text-anchor:middle;pointer-events:none;}
 .entrance-arrow{font-size:14px;fill:var(--muted);text-anchor:middle;pointer-events:none;}
 
 /* outro sections */
@@ -516,36 +513,42 @@ function renderBodyMap(container){
   container.appendChild(wrap);
 }
 
-/* ---- gym floor plan (multi-select) — the real Center layout, rotated 90° so the
-   entrance lands at the bottom of the screen, matching how a member sees it walking in.
-   Coordinates are the original floor plan rotated counter-clockwise: newX=oldY,
-   newY=(oldW_total - oldX - oldW), keeping every room's true neighbor relationships. ---- */
+/* ---- gym floor plan (multi-select) — a clean, evenly-aligned grid that keeps the
+   real Center's rough layout (far zones at top, entrance at the bottom, the way a
+   member sees it walking in) but reads like the body map: plain outline, no color
+   coding, shades lime on selection. ---- */
 function floorplanSVG(selected){
-  const sel = id => selected.includes(id) ? "gymzone selected" : "gymzone";
-  function zoneRect(id,x,y,w,h,color,short){
-    return '<g>'+
-      '<rect class="'+sel(id)+'" data-zone="'+id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="'+color+'"><title>'+GYM_ZONE_NAMES[id]+'</title></rect>'+
-      '<text class="gymzone-label" x="'+(x+w/2)+'" y="'+(y+h/2+3)+'">'+short+'</text>'+
-      (selected.includes(id) ? '<text class="gymzone-check" x="'+(x+w-10)+'" y="'+(y+11)+'" font-size="11">✓</text>' : '')+
-    '</g>';
+  const sel = id => selected.includes(id) ? "zone selected" : "zone";
+  const labelCls = id => "gymzone-label"+(selected.includes(id) ? " selected" : "");
+  function cell(id,x,y,w,h,short){
+    return '<rect class="'+sel(id)+'" data-zone="'+id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8"><title>'+GYM_ZONE_NAMES[id]+'</title></rect>'+
+           '<text class="'+labelCls(id)+'" x="'+(x+w/2)+'" y="'+(y+h/2+4)+'">'+short+'</text>';
   }
-  return '<svg class="floorplan" viewBox="0 0 260 340" xmlns="http://www.w3.org/2000/svg">'+
-    '<rect class="gymzone-context" x="0" y="110" width="70" height="120" rx="4"/>'+
-    '<text class="gymzone-context-label" x="35" y="173">Oficinas</text>'+
-    '<rect class="gymzone-context" x="0" y="230" width="70" height="70" rx="4"/>'+
-    '<text class="gymzone-context-label" x="35" y="268">Vestidores</text>'+
-    zoneRect("salon_clases",0,0,95,110,"#6B5F87","Clases")+
-    zoneRect("fuerza_peso_libre",95,0,125,110,"#2E6259","Peso libre")+
-    zoneRect("cardio",220,0,40,160,"#6E6E6A","Cardio")+
-    zoneRect("funcional_hyrox",70,110,90,120,"#B98A2E","Hyrox")+
-    zoneRect("fuerza_integrado",160,110,60,120,"#253547","Integrado")+
-    zoneRect("fuerza_libre_inferior",220,160,40,140,"#4A5730","Peso libre ↓")+
-    zoneRect("medicion_lab47",70,230,45,70,"#2F4863","Lab 47")+
-    zoneRect("movilidad",115,230,45,70,"#26374A","Movilidad")+
-    zoneRect("recovery",185,230,35,70,"#6B2F23","Recovery")+
-    '<rect class="entrance" x="125" y="300" width="95" height="34" rx="8"/>'+
-    '<text class="entrance-text" x="172" y="315">Entrada</text>'+
-    '<text class="entrance-arrow" x="172" y="330">↑</text>'+
+  const cw=84, ch=70, gx=8, gy=8;
+  const x1=0, x2=x1+cw+gx, x3=x2+cw+gx;
+  const y1=0, y2=y1+ch+gy, y3=y2+ch+gy, y4=y3+ch+gy;
+  const totalW = x3+cw, totalH = y4+ch+28+40;
+  return '<svg class="floorplan" viewBox="0 0 '+totalW+' '+totalH+'" xmlns="http://www.w3.org/2000/svg">'+
+    cell("salon_clases",x1,y1,cw,ch,"Clases")+
+    cell("fuerza_peso_libre",x2,y1,cw,ch,"Peso libre")+
+    cell("cardio",x3,y1,cw,ch,"Cardio")+
+
+    '<rect class="gymzone-context" x="'+x1+'" y="'+y2+'" width="'+cw+'" height="'+ch+'" rx="8"/>'+
+    '<text class="gymzone-context-label" x="'+(x1+cw/2)+'" y="'+(y2+ch/2+3)+'">Oficinas</text>'+
+    cell("funcional_hyrox",x2,y2,cw,ch,"Hyrox")+
+    cell("fuerza_integrado",x3,y2,cw,ch,"Integrado")+
+
+    cell("medicion_lab47",x1,y3,cw,ch,"Lab 47")+
+    cell("movilidad",x2,y3,cw,ch,"Movilidad")+
+    cell("recovery",x3,y3,cw,ch,"Recovery")+
+
+    '<rect class="gymzone-context" x="'+x1+'" y="'+y4+'" width="'+cw+'" height="'+ch+'" rx="8"/>'+
+    '<text class="gymzone-context-label" x="'+(x1+cw/2)+'" y="'+(y4+ch/2+3)+'">Vestidores</text>'+
+    cell("fuerza_libre_inferior",x2,y4,cw*2+gx,ch,"Peso libre (planta baja)")+
+
+    '<rect class="entrance" x="'+(totalW/2-60)+'" y="'+(y4+ch+28)+'" width="120" height="40" rx="10"/>'+
+    '<text class="entrance-text" x="'+(totalW/2)+'" y="'+(y4+ch+28+18)+'">Entrada</text>'+
+    '<text class="entrance-arrow" x="'+(totalW/2)+'" y="'+(y4+ch+28+34)+'">↑</text>'+
   '</svg>';
 }
 
