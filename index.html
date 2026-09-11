@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ficha de Bienvenida — Vivo 47 Center</title>
+<title>Encuesta de Bienvenida — Vivo 47 Center</title>
 <meta name="description" content="Formulario inicial para nuevos socios de Vivo 47 Center.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -219,14 +219,9 @@ textarea{resize:vertical;min-height:110px;line-height:1.5;font-size:17px;}
 
 /* body map */
 .bodymap-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;}
-.bodymap-dual{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;width:100%;}
-.bodymap-col{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;min-width:130px;max-width:180px;}
-.bodymap-col .col-label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
-svg.silhouette{width:100%;max-width:160px;height:auto;}
 .zone{fill:var(--surface);stroke:var(--line);stroke-width:2;cursor:pointer;transition:fill .15s, stroke .15s;}
 .zone:hover{stroke:var(--ink-soft);}
 .zone.selected{fill:var(--accent);stroke:var(--ink);}
-.silhouette-outline{fill:none;stroke:var(--line);stroke-width:1.5;}
 .zone-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:2px;}
 .zone-chip{
   background:var(--accent);color:var(--accent-ink);font-size:12.5px;font-weight:700;
@@ -350,6 +345,7 @@ const DURACIONES = ["30 min","1 hora","1.5 horas","2 horas"];
 const RELACION = ["Nunca he sido constante","Estoy retomando","Entreno ocasionalmente","Entreno constantemente"];
 const CONDICION = ["Muy baja","Baja","Promedio","Buena","Muy buena"];
 const ABANDONO = ["Falta de motivación","No veía resultados","Lesiones / molestias","Me aburría","Me sentía incómodo"];
+const CAPACIDADES = ["Movilidad","Fuerza","Potencia","Resistencia"];
 const GYM_ZONE_NAMES = {
   salon_clases:"Salón de clases",
   medicion_lab47:"Medición Lab 47",
@@ -392,7 +388,7 @@ const state = {
   nombre:"", lada:"+52", telefono:"",
   objetivo:"", meta90:"",
   dias:"", horario:"", duracion:"",
-  zonas:[], zonasGym:[],
+  capacidad:[], zonasGym:[],
   relacion:"", condicion:"", abandono:[], frase:"",
   diaVemos:""
 };
@@ -448,87 +444,6 @@ function multiSelect(container, options, key){
     };
     wrap.appendChild(row);
   });
-  container.appendChild(wrap);
-}
-
-/* ---- body map zones (multi-select, front + back shown together) ---- */
-const ZONES_FRONT = [
-  {id:"hombros_brazos", label:"Hombros y brazos"},
-  {id:"pecho", label:"Pecho"},
-  {id:"abdomen", label:"Abdomen"},
-  {id:"piernas_frente", label:"Piernas"}
-];
-const ZONES_BACK = [
-  {id:"espalda", label:"Espalda"},
-  {id:"gluteos", label:"Glúteos"},
-  {id:"piernas_post", label:"Piernas (posterior)"}
-];
-const ZONE_NAMES = {};
-ZONES_FRONT.concat(ZONES_BACK).forEach(z=>ZONE_NAMES[z.id]=z.label);
-
-function frontSVG(selected){
-  const sel = id => selected.includes(id) ? "zone selected" : "zone";
-  return '<svg class="silhouette" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">'+
-    '<circle class="silhouette-outline" cx="100" cy="34" r="24"/>'+
-    '<path class="'+sel("hombros_brazos")+'" data-zone="hombros_brazos" d="M60 70 Q30 78 24 130 Q22 190 34 235 L56 232 Q48 180 52 130 Q54 100 70 82 Z"/>'+
-    '<path class="'+sel("hombros_brazos")+'" data-zone="hombros_brazos" d="M140 70 Q170 78 176 130 Q178 190 166 235 L144 232 Q152 180 148 130 Q146 100 130 82 Z"/>'+
-    '<path class="'+sel("pecho")+'" data-zone="pecho" d="M70 82 Q100 68 130 82 L134 150 Q100 162 66 150 Z"/>'+
-    '<path class="'+sel("abdomen")+'" data-zone="abdomen" d="M66 150 Q100 162 134 150 L128 224 Q100 236 72 224 Z"/>'+
-    '<path class="'+sel("piernas_frente")+'" data-zone="piernas_frente" d="M72 224 Q100 236 128 224 L134 388 Q116 396 106 388 L102 260 L98 260 L94 388 Q84 396 66 388 Z"/>'+
-  '</svg>';
-}
-function backSVG(selected){
-  const sel = id => selected.includes(id) ? "zone selected" : "zone";
-  return '<svg class="silhouette" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">'+
-    '<circle class="silhouette-outline" cx="100" cy="34" r="24"/>'+
-    '<path class="silhouette-outline" d="M60 70 Q30 78 24 130 Q22 190 34 235 L56 232 Q48 180 52 130 Q54 100 70 82 Z"/>'+
-    '<path class="silhouette-outline" d="M140 70 Q170 78 176 130 Q178 190 166 235 L144 232 Q152 180 148 130 Q146 100 130 82 Z"/>'+
-    '<path class="'+sel("espalda")+'" data-zone="espalda" d="M68 80 Q100 66 132 80 L136 188 Q100 202 64 188 Z"/>'+
-    '<path class="'+sel("gluteos")+'" data-zone="gluteos" d="M64 188 Q100 202 136 188 L130 238 Q100 250 70 238 Z"/>'+
-    '<path class="'+sel("piernas_post")+'" data-zone="piernas_post" d="M70 238 Q100 250 130 238 L134 388 Q116 396 106 388 L102 268 L98 268 L94 388 Q84 396 66 388 Z"/>'+
-  '</svg>';
-}
-
-function renderBodyMap(container){
-  const wrap = el("div","bodymap-wrap");
-  const dual = el("div","bodymap-dual");
-
-  const frontCol = el("div","bodymap-col");
-  frontCol.appendChild(el("div","col-label","Frente"));
-  const frontHost = el("div"); frontHost.innerHTML = frontSVG(state.zonas);
-  frontCol.appendChild(frontHost);
-
-  const backCol = el("div","bodymap-col");
-  backCol.appendChild(el("div","col-label","Espalda"));
-  const backHost = el("div"); backHost.innerHTML = backSVG(state.zonas);
-  backCol.appendChild(backHost);
-
-  dual.appendChild(frontCol); dual.appendChild(backCol);
-  wrap.appendChild(dual);
-
-  [frontHost, backHost].forEach(host=>{
-    host.querySelectorAll("[data-zone]").forEach(node=>{
-      node.addEventListener("click", ()=>{
-        const z = node.getAttribute("data-zone");
-        const i = state.zonas.indexOf(z);
-        if(i>-1) state.zonas.splice(i,1); else state.zonas.push(z);
-        persistDraft(); renderStep();
-      });
-    });
-  });
-
-  const chips = el("div","zone-chips");
-  if(state.zonas.length){
-    state.zonas.forEach(z=>{
-      const chip = el("div","zone-chip");
-      chip.innerHTML = ZONE_NAMES[z]+' <span class="x">✕</span>';
-      chip.querySelector(".x").onclick = ()=>{ state.zonas = state.zonas.filter(x=>x!==z); persistDraft(); renderStep(); };
-      chips.appendChild(chip);
-    });
-  } else {
-    chips.appendChild(el("span","zone-empty","Toca todas las zonas que quieras trabajar más"));
-  }
-  wrap.appendChild(chips);
   container.appendChild(wrap);
 }
 
@@ -623,7 +538,7 @@ const steps = [
     key:"telefono",
     eyebrow:"02 · Identificación",
     title:"¿Cuál es tu número de teléfono?",
-    sub:"Lo usamos como principal medio de contacto para seguimiento.",
+    sub:"Lo usamos como principal medio de contacto para seguimiento y a este número te enviaremos tu resumen personalizado al finalizar la encuesta.",
     render(c){
       const f = el("div","field");
       const row = el("div","phone-row");
@@ -669,8 +584,8 @@ const steps = [
   {
     key:"entrenamiento",
     eyebrow:"05 · Entrenamiento",
-    title:"Cuéntanos tu ritmo de entrenamiento.",
-    sub:"Con esto armamos tu horario dentro de Center.",
+    title:"Queremos saber cuándo nos visitarás regularmente.",
+    sub:"Nos ayudará a entender tus hábitos de entrenamiento.",
     render(c){
       const b1 = el("div","subblock");
       b1.appendChild(el("div","subblock-label","Días a la semana"));
@@ -687,17 +602,17 @@ const steps = [
     valid:()=> !!(state.dias && state.horario && state.duracion)
   },
   {
-    key:"zonaCuerpo",
+    key:"capacidad",
     eyebrow:"06 · Enfoque físico",
-    title:"¿En qué zona de tu cuerpo te enfocarás más?",
-    sub:"Puedes seleccionar varias zonas.",
-    render(c){ renderBodyMap(c); },
-    valid:()=> state.zonas.length>0
+    title:"¿Cuál es tu capacidad física a trabajar?",
+    sub:"Movilidad, Fuerza, Potencia y Resistencia — se pueden seleccionar varias.",
+    render(c){ multiSelect(c, CAPACIDADES, "capacidad"); },
+    valid:()=> state.capacidad.length>0
   },
   {
     key:"zonaGym",
     eyebrow:"07 · Enfoque en Center",
-    title:"¿Qué áreas de Center quieres aprovechar más?",
+    title:"¿En qué área de Center te gusta entrenar más?",
     render(c){ renderGymMap(c); },
     valid:()=> state.zonasGym.length>0
   },
@@ -768,9 +683,9 @@ function renderIntro(){
   stage.innerHTML = "";
   const hero = el("div","hero");
   hero.innerHTML =
-    '<span class="kicker"><span class="kdot"></span>Ficha de bienvenida</span>'+
+    '<span class="kicker"><span class="kdot"></span>Encuesta de bienvenida</span>'+
     '<h1>Antes de empezar a entrenar,<br>queremos conocerte.</h1>'+
-    '<p>Este formulario inicial nos da información útil para personalizar tu experiencia dentro de Vivo47 Center.</p>';
+    '<p>Este formulario inicial nos da información útil para mejorar tu experiencia dentro de Vivo47 Center.</p>';
   const btn = el("button","btn btn-primary","Comenzar →");
   btn.onclick = ()=>{ stepIndex=0; renderStep(); };
   hero.appendChild(btn);
@@ -836,7 +751,7 @@ function renderOutro(){
     ["Días / semana", state.dias],
     ["Horario", state.horario],
     ["Duración sesión", state.duracion],
-    ["Zonas del cuerpo", state.zonas.map(z=>ZONE_NAMES[z]).join(", ")],
+    ["Capacidad física", state.capacidad.join(", ")],
     ["Áreas de Center", state.zonasGym.map(z=>GYM_ZONE_NAMES[z]).join(", ")],
     ["Relación con ejercicio", state.relacion],
     ["Condición física", state.condicion],
@@ -885,13 +800,13 @@ function escapeHtml(s){
 
 function buildWhatsAppLink(){
   const lines = [
-    "Ficha de bienvenida — Vivo 47 Center",
+    "Encuesta de bienvenida — Vivo 47 Center",
     "Nombre: "+state.nombre,
     "Teléfono: "+state.lada+" "+state.telefono,
     "Objetivo: "+state.objetivo,
     "Meta 90 días: "+state.meta90,
     "Días/semana: "+state.dias+" · Horario: "+state.horario+" · Duración: "+state.duracion,
-    "Zonas del cuerpo: "+state.zonas.map(z=>ZONE_NAMES[z]).join(", "),
+    "Capacidad física a trabajar: "+state.capacidad.join(", "),
     "Áreas de Center: "+state.zonasGym.map(z=>GYM_ZONE_NAMES[z]).join(", "),
     "Relación con el ejercicio: "+state.relacion,
     "Condición física: "+state.condicion,
@@ -1014,7 +929,6 @@ function loadAdminData(){
   }
   adminList.innerHTML = note;
   list.forEach(d=>{
-    const zonasTxt = (d.zonas||[]).map(z=>ZONE_NAMES[z]||z).join(", ");
     const card = el("div","coach-entry");
     card.innerHTML =
       '<h3>'+escapeHtml(d.nombre||"Sin nombre")+'</h3>'+
@@ -1023,7 +937,7 @@ function loadAdminData(){
         '<div class="k">Objetivo</div><div>'+escapeHtml(d.objetivo||"—")+'</div>'+
         '<div class="k">Meta 90 días</div><div>'+escapeHtml(d.meta90||"—")+'</div>'+
         '<div class="k">Entrenamiento</div><div>'+escapeHtml([d.dias,d.horario,d.duracion].filter(Boolean).join(" · ")||"—")+'</div>'+
-        '<div class="k">Zonas del cuerpo</div><div>'+escapeHtml(zonasTxt||"—")+'</div>'+
+        '<div class="k">Capacidad física</div><div>'+escapeHtml((d.capacidad||[]).join(", ")||"—")+'</div>'+
         '<div class="k">Áreas de Center</div><div>'+escapeHtml((d.zonasGym||[]).map(z=>GYM_ZONE_NAMES[z]||z).join(", ")||"—")+'</div>'+
         '<div class="k">Relación con ejercicio</div><div>'+escapeHtml(d.relacion||"—")+'</div>'+
         '<div class="k">Condición física</div><div>'+escapeHtml(d.condicion||"—")+'</div>'+

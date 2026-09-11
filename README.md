@@ -1,6 +1,6 @@
 # Formulario inicial — Vivo 47 Center
 
-Ficha de bienvenida interactiva para nuevos socios de Vivo 47 Center. Es un sitio estático (un solo `index.html`, sin dependencias de build) con la identidad visual de [center.vivo47.com](https://center.vivo47.com).
+Encuesta de bienvenida interactiva para nuevos socios de Vivo 47 Center. Es un sitio estático (un solo `index.html`, sin dependencias de build) con la identidad visual de [center.vivo47.com](https://center.vivo47.com).
 
 ## Ver el sitio localmente
 
