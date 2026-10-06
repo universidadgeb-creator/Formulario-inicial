@@ -361,14 +361,15 @@ const GYM_ZONE_NAMES = {
 
 // Equipo real y sus horarios (horas en formato 24h; .5 = y media).
 // Para agregar foto: photo:"img/equipo/liss.jpg" (en GitHub) o una data URI.
-// Vacante: vacant:true — no se muestra a los socios.
+// blocks:[...] fija en qué bloques aparece (sin horario); vacant:true no se muestra a los socios.
 const TEAM = [
   {name:"Liss", start:5, end:12, photo:"img/equipo/liss.jpg"},
   {name:"Ricardo", start:5.5, end:12.5, photo:"img/equipo/ricardo.jpg"},
   {name:"Gerardo", start:5.5, end:12.5, photo:"img/equipo/gerardo.jpg"},
-  {name:"Juan Huerta", start:12, end:19, photo:""},
+  {name:"Juan Huerta", start:12, end:19, photo:"img/equipo/juan.jpg"},
   {name:"Fer", role:"Movilidad", start:13.5, end:20.5, photo:"img/equipo/fer.jpg"},
   {name:"Pau", start:15, end:22, photo:"img/equipo/pau.jpg"},
+  {name:"Marco Hernández", role:"Lab 47", blocks:["Bloque matutino","Bloque vespertino"], photo:"img/equipo/marco.jpg"},
   {name:"Vacante", start:16, end:23, vacant:true}
 ];
 // Ventanas de cada bloque; un coach aparece si su turno se traslapa 2 h o más.
@@ -376,7 +377,7 @@ const BLOQUES = {"Bloque matutino":[5,12], "Bloque intermedio":[12,16], "Bloque 
 function overlapHours(a0,a1,b0,b1){ return Math.max(0, Math.min(a1,b1)-Math.max(a0,b0)); }
 function coachesFor(block){
   const w = BLOQUES[block];
-  return TEAM.filter(m=>!m.vacant && (!w || overlapHours(m.start,m.end,w[0],w[1])>=2));
+  return TEAM.filter(m=>!m.vacant && (!w || (m.blocks ? m.blocks.includes(block) : overlapHours(m.start,m.end,w[0],w[1])>=2)));
 }
 function fmtHour(h){
   const hh = Math.floor(h), mm = Math.round((h-hh)*60);
@@ -734,8 +735,8 @@ function renderOutro(){
   teamCoaches.forEach(m=>{
     const card = el("div","team-card");
     const face = m.photo ? '<img src="'+m.photo+'" alt="'+m.name+'">' : initialsOf(m.name);
-    const hours = fmtHour(m.start)+" – "+fmtHour(m.end);
-    card.innerHTML = '<div class="avatar">'+face+'</div><div><div class="team-name">'+m.name+'</div><div class="team-role">'+(m.role?m.role+" · ":"")+hours+'</div></div>';
+    const hours = m.start!=null ? fmtHour(m.start)+" – "+fmtHour(m.end) : "";
+    card.innerHTML = '<div class="avatar">'+face+'</div><div><div class="team-name">'+m.name+'</div><div class="team-role">'+[m.role,hours].filter(Boolean).join(" · ")+'</div></div>';
     teamGrid.appendChild(card);
   });
   teamWrap.appendChild(teamGrid);
