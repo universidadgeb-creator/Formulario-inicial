@@ -341,7 +341,7 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 
 const OBJETIVOS = ["Ganar músculo","Mejorar mi condición física","Bajar de peso / grasa","Mejorar mi salud","Rendimiento deportivo"];
 const DIAS = ["1-2 días","3 días","4-5 días","6+ días"];
-const HORARIOS = ["Bloque matutino","Bloque vespertino","Bloque intermedio"];
+const HORARIOS = ["Bloque matutino","Bloque vespertino"];
 const DURACIONES = ["30 min","1 hora","1.5 horas","2 horas"];
 const RELACION = ["Nunca he sido constante","Estoy retomando","Entreno ocasionalmente","Entreno constantemente"];
 const CONDICION = ["Muy baja","Baja","Promedio","Buena","Muy buena"];
@@ -373,7 +373,7 @@ const TEAM = [
   {name:"Vacante", start:16, end:23, vacant:true}
 ];
 // Ventanas de cada bloque; un coach aparece si su turno se traslapa 2 h o más.
-const BLOQUES = {"Bloque matutino":[5,12], "Bloque intermedio":[12,16], "Bloque vespertino":[16,22]};
+const BLOQUES = {"Bloque matutino":[5,12], "Bloque vespertino":[12,22]};
 function overlapHours(a0,a1,b0,b1){ return Math.max(0, Math.min(a1,b1)-Math.max(a0,b0)); }
 function coachesFor(block){
   const w = BLOQUES[block];
