@@ -249,7 +249,7 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 @media (max-width:480px){.team-grid{grid-template-columns:1fr;}}
 .team-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:13px 15px;}
 .avatar{
-  width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+  width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
   display:flex;align-items:center;justify-content:center;font-weight:700;
   font-family:"Unbounded";font-size:13px;flex:none;overflow:hidden;
 }
@@ -363,12 +363,12 @@ const GYM_ZONE_NAMES = {
 // Para agregar foto: photo:"img/equipo/liss.jpg" (en GitHub) o una data URI.
 // Vacante: vacant:true — no se muestra a los socios.
 const TEAM = [
-  {name:"Liss", start:5, end:12, photo:""},
-  {name:"Ricardo", start:5.5, end:12.5, photo:""},
-  {name:"Gerardo", start:5.5, end:12.5, photo:""},
+  {name:"Liss", start:5, end:12, photo:"img/equipo/liss.jpg"},
+  {name:"Ricardo", start:5.5, end:12.5, photo:"img/equipo/ricardo.jpg"},
+  {name:"Gerardo", start:5.5, end:12.5, photo:"img/equipo/gerardo.jpg"},
   {name:"Juan Huerta", start:12, end:19, photo:""},
-  {name:"Fer", role:"Movilidad", start:13.5, end:20.5, photo:""},
-  {name:"Pau", start:15, end:22, photo:""},
+  {name:"Fer", role:"Movilidad", start:13.5, end:20.5, photo:"img/equipo/fer.jpg"},
+  {name:"Pau", start:15, end:22, photo:"img/equipo/pau.jpg"},
   {name:"Vacante", start:16, end:23, vacant:true}
 ];
 // Ventanas de cada bloque; un coach aparece si su turno se traslapa 2 h o más.
