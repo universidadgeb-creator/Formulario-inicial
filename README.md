@@ -1,38 +1,49 @@
-# Formulario inicial — Vivo 47 Center
+# Encuesta de bienvenida — Vivo 47 Center
 
-Encuesta de bienvenida interactiva para nuevos socios de Vivo 47 Center. Es un sitio estático (un solo `index.html`, sin dependencias de build) con la identidad visual de [center.vivo47.com](https://center.vivo47.com).
-
-## Ver el sitio localmente
-
-Abre `index.html` directamente en el navegador, o sirve la carpeta con cualquier servidor estático:
-
-```bash
-npx serve .
-```
-
-## Publicar con GitHub Pages
-
-1. Settings → Pages → Deploy from a branch.
-2. Elige la rama `main` y la carpeta `/ (root)`.
-3. Guarda — el sitio queda publicado en `https://universidadgeb-creator.github.io/Formulario-inicial/`.
+Encuesta interactiva para nuevos socios de Vivo 47 Center. Es un sitio estático (un solo `index.html`, sin build) publicado con GitHub Pages: https://universidadgeb-creator.github.io/Formulario-inicial/
 
 ## Qué incluye
 
-- Formulario paso a paso (12 preguntas) con guardado de borrador en `localStorage`.
-- Mapa corporal (frente y espalda) y plano de Center, ambos clicables y de selección múltiple.
-- Pantalla final con recomendaciones automáticas, botón para enviar los resultados por WhatsApp y botón para agregar la primera sesión a Google Calendar.
-- Panel `/#coaches` (enlace "Admin" en la esquina) para revisar respuestas.
+- Encuesta paso a paso (12 preguntas) con borrador guardado en el navegador.
+- Plano de Center clicable y selección múltiple de capacidades.
+- Pantalla final con el equipo del bloque elegido, recomendaciones, botón para enviar el resumen al WhatsApp de Center y botón para agregar la primera sesión al calendario.
+- Panel **Admin** (enlace en la esquina, o `/#admin`) con contraseña: resumen de resultados, tabla, búsqueda, exportar CSV y borrado de registros.
 
-## Estado de la base de datos
+## Conectar Supabase (una sola vez)
 
-**Todavía no hay backend conectado.** Las respuestas se guardan únicamente en el `localStorage` del navegador de quien contesta (ver `saveResponse()` en `index.html`), además de lo que la persona decida enviar por WhatsApp o agregar a su calendario.
+1. En [supabase.com](https://supabase.com) crea un proyecto.
+2. **SQL Editor → New query**, pega todo `supabase/schema.sql` y presiona **Run**. Crea la tabla `respuestas`, la seguridad y las funciones del panel Admin.
+3. En otra consulta, pon tu contraseña de administración (cámbiala por la tuya) y presiona **Run**:
 
-Para conectar una base de datos real:
+   ```sql
+   insert into public.admin_config (id, password_hash)
+   values (1, extensions.crypt('TU_CONTRASEÑA_AQUÍ', extensions.gen_salt('bf')))
+   on conflict (id) do update set password_hash = excluded.password_hash;
+   ```
 
-1. Reemplaza el cuerpo de `saveResponse()` por una llamada a tu API (por ejemplo `fetch("/api/responses", { method: "POST", body: JSON.stringify(state) })`).
-2. Reemplaza `loadAdminData()` para que lea de esa misma API en lugar de `localStorage`.
+   La contraseña se guarda cifrada; nunca queda en el código. Para cambiarla, vuelve a correr la consulta.
+4. **Project Settings → API**: copia la **Project URL** y la **anon public key** y pégalas en `index.html`:
 
-## Datos de ejemplo a personalizar
+   ```js
+   const SUPABASE_URL = "https://xxxx.supabase.co";
+   const SUPABASE_ANON_KEY = "eyJ...";
+   ```
 
-- `TEAM` (dentro del `<script>`): nombres y roles de coaches por turno — son placeholders, reemplázalos por tu staff real.
-- El plano de Center en `floorplanSVG()` es una interpretación esquemática del layout — ajusta las coordenadas si tienes las medidas reales.
+   La anon key es pública por diseño. Nunca pongas la `service_role` key en el sitio.
+5. Sube el cambio a `main`; GitHub Pages se actualiza en uno o dos minutos.
+
+Sin esas dos líneas el sitio sigue funcionando en modo de prueba: las respuestas se guardan solo en el navegador de quien contesta.
+
+## Cómo está protegido
+
+- Quien llena la encuesta solo puede **agregar** una respuesta. No puede leer, editar ni borrar nada (RLS activado, sin permisos de lectura).
+- El panel Admin usa funciones del servidor (`admin_list`, `admin_delete`, `admin_delete_all`) que validan la contraseña en cada llamada. Un intento fallido tarda un segundo en responder para frenar adivinanzas.
+- La contraseña de la sesión se guarda en `sessionStorage` y se borra al cerrar la pestaña o al dar "Cerrar sesión".
+- Los datos son personales (nombre, teléfono, hábitos de salud). Conviene avisar a los socios para qué se usan, y limpiar los registros de prueba antes de abrir al público (Admin → "Borrar todo").
+
+## Equipo y plano
+
+- `TEAM` (en el `<script>`): coaches, fotos (`img/equipo/`) y horarios. Cada socio ve a quien se traslapa 2 horas o más con el bloque que elige; `blocks:[...]` fija bloques sin horario y `vacant:true` oculta una vacante.
+- `BLOQUES`: ventanas de los bloques (matutino 5–12, vespertino 12–22).
+- `floorplanSVG()`: plano esquemático de Center.
+- `CENTER_WHATSAPP`: número de Center (código de país + 10 dígitos).
