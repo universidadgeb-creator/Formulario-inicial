@@ -251,8 +251,9 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 .avatar{
   width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
   display:flex;align-items:center;justify-content:center;font-weight:700;
-  font-family:"Unbounded";font-size:13px;flex:none;
+  font-family:"Unbounded";font-size:13px;flex:none;overflow:hidden;
 }
+.avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 .team-name{font-weight:700;font-size:13.5px;color:var(--ink);}
 .team-role{font-size:12px;color:var(--muted);}
 
@@ -358,30 +359,38 @@ const GYM_ZONE_NAMES = {
   cardio:"Resistencia y Potencia (Cardio)"
 };
 
-// Placeholder de staff — reemplazar con el equipo real (nombre y rol) por turno.
-const TEAM = {
-  "Bloque matutino": [
-    {name:"Coach Ana Ruiz", role:"Fuerza y Movilidad"},
-    {name:"Coach Marcos Vidal", role:"Funcional / Hyrox"}
-  ],
-  "Bloque vespertino": [
-    {name:"Coach Diego Palma", role:"Fuerza y Potencia"},
-    {name:"Coach Fernanda Lira", role:"Recovery y Movilidad"}
-  ],
-  "Bloque intermedio": [
-    {name:"Coach Ana Ruiz", role:"Fuerza y Movilidad"},
-    {name:"Coach Diego Palma", role:"Fuerza y Potencia"}
-  ]
-};
+// Equipo real y sus horarios (horas en formato 24h; .5 = y media).
+// Para agregar foto: photo:"img/equipo/liss.jpg" (en GitHub) o una data URI.
+// Vacante: vacant:true — no se muestra a los socios.
+const TEAM = [
+  {name:"Liss", start:5, end:12, photo:""},
+  {name:"Ricardo", start:5.5, end:12.5, photo:""},
+  {name:"Gerardo", start:5.5, end:12.5, photo:""},
+  {name:"Juan Huerta", start:12, end:19, photo:""},
+  {name:"Fer", role:"Movilidad", start:13.5, end:20.5, photo:""},
+  {name:"Pau", start:15, end:22, photo:""},
+  {name:"Vacante", start:16, end:23, vacant:true}
+];
+// Ventanas de cada bloque; un coach aparece si su turno se traslapa 2 h o más.
+const BLOQUES = {"Bloque matutino":[5,12], "Bloque intermedio":[12,16], "Bloque vespertino":[16,22]};
+function overlapHours(a0,a1,b0,b1){ return Math.max(0, Math.min(a1,b1)-Math.max(a0,b0)); }
+function coachesFor(block){
+  const w = BLOQUES[block];
+  return TEAM.filter(m=>!m.vacant && (!w || overlapHours(m.start,m.end,w[0],w[1])>=2));
+}
+function fmtHour(h){
+  const hh = Math.floor(h), mm = Math.round((h-hh)*60);
+  return (((hh+11)%12)+1)+":"+String(mm).padStart(2,"0")+" "+(hh<12?"a.m.":"p.m.");
+}
 
 const INCONSISTENTES = ["Nunca he sido constante","Estoy retomando","Entreno ocasionalmente"];
 
 const TIPS = {
-  "Falta de motivación":"Pide a tu coach un check-in semanal — la rendición de cuentas sostiene la motivación mejor que la fuerza de voluntad.",
-  "No veía resultados":"Agenda tu primera medición en Lab 47 y una revisión con nutriólogo — sin datos es difícil ver el progreso real.",
-  "Lesiones / molestias":"Cuéntale a tu coach sobre esas molestias antes de tu primera sesión para adaptar tu plan de movilidad.",
-  "Me aburría":"Prueba al menos una clase grupal o un Hyrox social este mes — variar el estímulo sostiene el interés.",
-  "Me sentía incómodo":"Center está pensado como ambiente familiar — tu coach te acompaña de cerca las primeras semanas para que te sientas en confianza."
+  "Falta de motivación":"Entrenar juntos cambia la experiencia. En el Salón de clases tienes baile, yoga, funcional y más: diferentes disciplinas para mantenerte activo, disfrutar el proceso y ser parte de una comunidad que te impulsa.",
+  "No veía resultados":"Aquí desarrollas fuerza de forma segura y progresiva, con equipos que facilitan el control del movimiento y la carga y se adaptan a tu nivel y objetivos. Agenda tu medición en Lab 47 y una revisión con nutriólogo para ver tu progreso con datos.",
+  "Lesiones / molestias":"La movilidad es la base de las capacidades: inicias y terminas cada entrenamiento con un calentamiento de acuerdo a lo que vas a trabajar y un buen estiramiento. Y en Recovery tienes botas de compresión y pistola de percusión para reducir la tensión y estar listo para tu siguiente sesión.",
+  "Me aburría":"Funcional / Hyrox es un espacio donde entrenas de forma integral las 4 capacidades, y el Salón de clases suma baile, yoga y más. Variar el estímulo también es entrenar para la vida.",
+  "Me sentía incómodo":"Nuestros equipos de peso integrado facilitan el control del movimiento y se adaptan a tu nivel y objetivos, y tu coach te acompaña y te guía en tu proceso. Aquí eres parte de una comunidad que te impulsa a sostener el entrenamiento a lo largo de tu vida."
 };
 
 const state = {
@@ -703,7 +712,7 @@ function frequencyInsight(){
 }
 
 function initialsOf(name){
-  return name.replace("Coach ","").split(" ").map(w=>w[0]||"").join("").slice(0,2).toUpperCase();
+  return name.split(" ").map(w=>w[0]||"").join("").slice(0,2).toUpperCase();
 }
 
 function renderOutro(){
@@ -719,12 +728,14 @@ function renderOutro(){
     '<p>Tu ficha ya está con el equipo deportivo de Vivo 47 Center — la revisan antes de tu sesión del '+(fmtDate(state.diaVemos)||"día acordado")+'.</p>';
 
   const teamWrap = el("div","team-wrap");
-  const teamCoaches = TEAM[state.horario] || TEAM["Bloque intermedio"];
+  const teamCoaches = coachesFor(state.horario);
   teamWrap.appendChild(el("div","team-title","Te presentamos a tu equipo — "+(state.horario||"Vivo 47 Center")));
   const teamGrid = el("div","team-grid");
   teamCoaches.forEach(m=>{
     const card = el("div","team-card");
-    card.innerHTML = '<div class="avatar">'+initialsOf(m.name)+'</div><div><div class="team-name">'+m.name+'</div><div class="team-role">'+m.role+'</div></div>';
+    const face = m.photo ? '<img src="'+m.photo+'" alt="'+m.name+'">' : initialsOf(m.name);
+    const hours = fmtHour(m.start)+" – "+fmtHour(m.end);
+    card.innerHTML = '<div class="avatar">'+face+'</div><div><div class="team-name">'+m.name+'</div><div class="team-role">'+(m.role?m.role+" · ":"")+hours+'</div></div>';
     teamGrid.appendChild(card);
   });
   teamWrap.appendChild(teamGrid);
