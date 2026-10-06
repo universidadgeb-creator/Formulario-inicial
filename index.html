@@ -384,6 +384,9 @@ function fmtHour(h){
   return (((hh+11)%12)+1)+":"+String(mm).padStart(2,"0")+" "+(hh<12?"a.m.":"p.m.");
 }
 
+// WhatsApp de Center: código de país 52 + 10 dígitos, sin signos ni espacios.
+const CENTER_WHATSAPP = "523351290760";
+
 const INCONSISTENTES = ["Nunca he sido constante","Estoy retomando","Entreno ocasionalmente"];
 
 const TIPS = {
@@ -548,7 +551,7 @@ const steps = [
     key:"telefono",
     eyebrow:"02 · Identificación",
     title:"¿Cuál es tu número de teléfono?",
-    sub:"Lo usamos como principal medio de contacto para seguimiento y a este número te enviaremos tu resumen personalizado al finalizar la encuesta.",
+    sub:"Lo usamos como principal medio de contacto para seguimiento y te contactaremos con tu resumen personalizado al finalizar la encuesta.",
     render(c){
       const f = el("div","field");
       const row = el("div","phone-row");
@@ -726,7 +729,7 @@ function renderOutro(){
   hero.innerHTML =
     '<span class="kicker"><span class="kdot"></span>Real. Posible. Tuyo.</span>'+
     '<h1>'+(firstName? firstName+", ya":"Ya")+' diste el primer paso.</h1>'+
-    '<p>Tu ficha ya está con el equipo deportivo de Vivo 47 Center — la revisan antes de tu sesión del '+(fmtDate(state.diaVemos)||"día acordado")+'.</p>';
+    '<p>Envía tu resumen a Center por WhatsApp para que el equipo deportivo lo revise antes de tu sesión del '+(fmtDate(state.diaVemos)||"día acordado")+'.</p>';
 
   const teamWrap = el("div","team-wrap");
   const teamCoaches = coachesFor(state.horario);
@@ -781,7 +784,7 @@ function renderOutro(){
   const actions = el("div","actions-row");
   const waLink = document.createElement("a");
   waLink.className = "wa-btn"; waLink.target = "_blank"; waLink.rel="noopener";
-  waLink.innerHTML = "Enviar mis resultados a mi WhatsApp →";
+  waLink.innerHTML = "Enviar mi resumen a Center por WhatsApp →";
   waLink.href = buildWhatsAppLink();
   actions.appendChild(waLink);
 
@@ -812,8 +815,8 @@ function escapeHtml(s){
 
 function buildWhatsAppLink(){
   const lines = [
-    "Encuesta de bienvenida — Vivo 47 Center",
-    "Nombre: "+state.nombre,
+    "Hola, soy "+state.nombre+". Terminé mi encuesta de bienvenida de Vivo 47 Center:",
+    "",
     "Teléfono: "+state.lada+" "+state.telefono,
     "Objetivo: "+state.objetivo,
     "Meta 90 días: "+state.meta90,
@@ -826,7 +829,7 @@ function buildWhatsAppLink(){
     "Frase de rescate: "+state.frase,
     "Te vemos en Center: "+fmtDate(state.diaVemos)
   ];
-  return "https://wa.me/?text="+encodeURIComponent(lines.join("\n"));
+  return "https://wa.me/"+CENTER_WHATSAPP+"?text="+encodeURIComponent(lines.join("\n"));
 }
 
 function buildCalendarLink(){
