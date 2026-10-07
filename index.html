@@ -385,29 +385,38 @@ const GYM_ZONE_NAMES = {
   cardio:"Resistencia y Potencia (Cardio)"
 };
 
-// Equipo real y sus horarios (horas en formato 24h; .5 = y media).
-// Para agregar foto: photo:"img/equipo/liss.jpg" (en GitHub) o una data URI.
-// blocks:[...] fija en qué bloques aparece (sin horario); vacant:true no se muestra a los socios.
+// Equipo y horarios. Horas en formato 24h (.5 = y media).
+// shifts: turnos del coach; cada uno con días opcionales y uno o más tramos [inicio, fin].
+// Foto: photo:"img/equipo/archivo.jpg". vacant:true no se muestra a los socios.
 const TEAM = [
-  {name:"Lisset Vázquez", start:5, end:12, photo:"img/equipo/liss.jpg"},
-  {name:"Ricardo Leal", start:5.5, end:12.5, photo:"img/equipo/ricardo.jpg"},
-  {name:"Gerardo Montes", start:5.5, end:12.5, photo:"img/equipo/gerardo.jpg"},
-  {name:"Juan Huerta", start:12, end:19, photo:"img/equipo/juan.jpg"},
-  {name:"Fernando Macías", start:13, end:20.5, photo:"img/equipo/fernando.jpg"},
-  {name:"Paulina Monroy", start:15, end:22, photo:"img/equipo/pau.jpg"},
-  {name:"Marco Hernández", role:"Lab 47", blocks:["Bloque matutino","Bloque vespertino"], photo:"img/equipo/marco.jpg"},
-  {name:"Vacante", start:16, end:23, vacant:true}
+  {name:"Lisset Vázquez", shifts:[{slots:[[5,12]]}], photo:"img/equipo/liss.jpg"},
+  {name:"Ricardo Leal", shifts:[{slots:[[5.5,13.5]]}], photo:"img/equipo/ricardo.jpg"},
+  {name:"Gerardo Montes", shifts:[{slots:[[5.5,12.5]]}], photo:"img/equipo/gerardo.jpg"},
+  {name:"Juan Huerta", shifts:[{slots:[[12,19]]}], photo:"img/equipo/juan.jpg"},
+  {name:"Fernando Macías", shifts:[{slots:[[13,20.5]]}], photo:"img/equipo/fernando.jpg"},
+  {name:"Paulina Monroy", shifts:[{slots:[[15,22]]}], photo:"img/equipo/pau.jpg"},
+  {name:"Arodys Pérez", shifts:[{days:"Lun a vie", slots:[[5.5,10],[11.5,16]]}], photo:"img/equipo/arodys.jpg"},
+  {name:"Marco Hernández", role:"Lab 47", shifts:[
+    {days:"Mar y jue", slots:[[7,14]]},
+    {days:"Lun, mié y vie", slots:[[14.5,21.5]]},
+    {days:"Sáb", slots:[[9,14]]}
+  ], photo:"img/equipo/marco.jpg"},
+  {name:"Vacante", shifts:[{slots:[[16,23]]}], vacant:true}
 ];
-// Ventanas de cada bloque; un coach aparece si su turno se traslapa 2 h o más.
+// Ventanas de cada bloque; un coach aparece si en algún día trabaja 2 h o más dentro del bloque.
 const BLOQUES = {"Bloque matutino":[5,12], "Bloque vespertino":[12,22]};
 function overlapHours(a0,a1,b0,b1){ return Math.max(0, Math.min(a1,b1)-Math.max(a0,b0)); }
 function coachesFor(block){
   const w = BLOQUES[block];
-  return TEAM.filter(m=>!m.vacant && (!w || (m.blocks ? m.blocks.includes(block) : overlapHours(m.start,m.end,w[0],w[1])>=2)));
+  return TEAM.filter(m=>!m.vacant && (!w || m.shifts.some(sh=>
+    sh.slots.reduce((t,sl)=>t+overlapHours(sl[0],sl[1],w[0],w[1]),0) >= 2)));
 }
 function fmtHour(h){
   const hh = Math.floor(h), mm = Math.round((h-hh)*60);
   return (((hh+11)%12)+1)+":"+String(mm).padStart(2,"0")+" "+(hh<12?"a.m.":"p.m.");
+}
+function shiftLines(m){
+  return m.shifts.map(sh=>(sh.days ? sh.days+": " : "") + sh.slots.map(sl=>fmtHour(sl[0])+" – "+fmtHour(sl[1])).join(" · "));
 }
 
 // WhatsApp de Center: código de país 52 + 10 dígitos, sin signos ni espacios.
@@ -768,8 +777,7 @@ function renderOutro(){
   teamCoaches.forEach(m=>{
     const card = el("div","team-card");
     const face = m.photo ? '<img src="'+m.photo+'" alt="'+m.name+'">' : initialsOf(m.name);
-    const hours = m.start!=null ? fmtHour(m.start)+" – "+fmtHour(m.end) : "";
-    card.innerHTML = '<div class="avatar">'+face+'</div><div><div class="team-name">'+m.name+'</div><div class="team-role">'+[m.role,hours].filter(Boolean).join(" · ")+'</div></div>';
+    card.innerHTML = '<div class="avatar">'+face+'</div><div><div class="team-name">'+m.name+'</div><div class="team-role">'+[m.role].concat(shiftLines(m)).filter(Boolean).join("<br>")+'</div></div>';
     teamGrid.appendChild(card);
   });
   teamWrap.appendChild(teamGrid);
