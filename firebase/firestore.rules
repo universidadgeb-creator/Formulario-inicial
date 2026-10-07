@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Encuesta de bienvenida · Vivo 47 Center
+// Firebase Console → Firestore Database → Reglas → pega este archivo → Publicar.
+// Cambia 'admin@CAMBIA.com' por el correo del usuario administrador (Authentication → Usuarios).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'admin@CAMBIA.com';
+    }
+    function texto(v, max) { return v is string && v.size() <= max; }
+    function lista(v, max) { return v is list && v.size() <= max; }
+
+    match /respuestas/{id} {
+      // Quien llena la encuesta solo puede AGREGAR una respuesta con la forma esperada.
+      allow create: if request.resource.data.keys().hasOnly([
+          'nombre', 'lada', 'telefono', 'objetivo', 'meta90', 'dias', 'horario',
+          'duracion', 'capacidad', 'zonas_gym', 'relacion', 'condicion',
+          'abandono', 'frase', 'dia_vemos'
+        ])
+        && request.resource.data.keys().hasAll(['nombre', 'lada', 'telefono'])
+        && texto(request.resource.data.nombre, 200) && request.resource.data.nombre.size() > 0
+        && texto(request.resource.data.lada, 8)
+        && texto(request.resource.data.telefono, 30) && request.resource.data.telefono.size() >= 6
+        && texto(request.resource.data.get('objetivo', ''), 100)
+        && texto(request.resource.data.get('meta90', ''), 1000)
+        && texto(request.resource.data.get('dias', ''), 50)
+        && texto(request.resource.data.get('horario', ''), 50)
+        && texto(request.resource.data.get('duracion', ''), 50)
+        && lista(request.resource.data.get('capacidad', []), 10)
+        && lista(request.resource.data.get('zonas_gym', []), 20)
+        && texto(request.resource.data.get('relacion', ''), 100)
+        && texto(request.resource.data.get('condicion', ''), 100)
+        && lista(request.resource.data.get('abandono', []), 10)
+        && texto(request.resource.data.get('frase', ''), 500)
+        && texto(request.resource.data.get('dia_vemos', ''), 10);
+
+      // Solo la cuenta de administrador puede leer y borrar. Nadie edita.
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+  }
+}
