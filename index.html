@@ -333,6 +333,26 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 .coach-grid .k{color:var(--muted);}
 @media (max-width:560px){.coach-grid{grid-template-columns:1fr;gap:2px 0;}.coach-grid .k{margin-top:8px;}}
 
+/* reporte PDF (se dibuja fuera de pantalla, siempre en colores claros) */
+button.cal-btn{cursor:pointer;font-family:inherit;}
+button.cal-btn:disabled{opacity:.6;cursor:progress;}
+.pdf-sheet{position:absolute;left:-10000px;top:0;width:760px;}
+.pdf-light{
+  --bg:#FAFAF9;--surface:#FFFFFF;--ink:#101208;--ink-soft:#3A3D31;--muted:#6E7160;
+  --line:#E6E5DC;--accent:#DBFC8B;--accent-ink:#141C08;
+  background:#FAFAF9;color:var(--ink);font-family:"Archivo",sans-serif;
+}
+.pdf-block{background:#FAFAF9;padding-bottom:2px;}
+.pdf-light .team-grid{grid-template-columns:1fr 1fr;}
+.pdf-light .summary-card{margin:0;}
+.pdf-head{display:flex;align-items:center;gap:18px;padding:6px 0 10px;}
+.pdf-head .brand-mark{width:60px;height:60px;font-size:20px;}
+.pdf-title{font-family:"Unbounded",sans-serif;font-weight:700;font-size:28px;line-height:1.1;color:var(--ink);}
+.pdf-sub{font-size:15px;color:var(--muted);margin-top:6px;}
+.pdf-intro h2{font-size:24px;line-height:1.2;margin-bottom:8px;}
+.pdf-intro p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0 0 6px;}
+.pdf-foot{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:14px;}
+
 [hidden]{display:none!important;}
 </style>
 </head>
@@ -760,17 +780,8 @@ function initialsOf(name){
   return name.split(" ").map(w=>w[0]||"").join("").slice(0,2).toUpperCase();
 }
 
-function renderOutro(){
-  stepCountEl.textContent = "Listo";
-  progressFill.style.width = "100%";
-  stage.innerHTML = "";
-
-  const hero = el("div","hero");
-  const firstName = state.nombre.trim().split(" ")[0] || "";
-  hero.innerHTML =
-    '<span class="kicker"><span class="kdot"></span>Real. Posible. Tuyo.</span>'+
-    '<h1>'+(firstName? firstName+", ya":"Ya")+' diste el primer paso.</h1>'+
-    '<p>Envía tu resumen a Center por WhatsApp para que el equipo deportivo lo revise antes de tu sesión del '+(fmtDate(state.diaVemos)||"día acordado")+'.</p>';
+function reportBlocks(){
+  const blocks = [];
 
   const teamWrap = el("div","team-wrap");
   const teamCoaches = coachesFor(state.horario);
@@ -783,17 +794,17 @@ function renderOutro(){
     teamGrid.appendChild(card);
   });
   teamWrap.appendChild(teamGrid);
-  hero.appendChild(teamWrap);
+  blocks.push(teamWrap);
 
   const freqCard = el("div","insight-card");
   freqCard.innerHTML = '<div class="insight-label">Recomendación de frecuencia</div><div class="insight-text">'+frequencyInsight()+'</div>';
-  hero.appendChild(freqCard);
+  blocks.push(freqCard);
 
   state.abandono.forEach(reason=>{
     if(TIPS[reason]){
       const tip = el("div","insight-card");
       tip.innerHTML = '<div class="insight-label">Para que no se repita: '+escapeHtml(reason)+'</div><div class="insight-text">'+TIPS[reason]+'</div>';
-      hero.appendChild(tip);
+      blocks.push(tip);
     }
   });
 
@@ -819,7 +830,108 @@ function renderOutro(){
     r.innerHTML = '<span class="k">'+k+'</span><span class="v">'+escapeHtml(v||"—")+'</span>';
     card.appendChild(r);
   });
-  hero.appendChild(card);
+  blocks.push(card);
+
+  return blocks;
+}
+
+/* ---- Reporte en PDF: se arma en el navegador, sin enviar nada a ningún servidor ---- */
+const PDF_LIBS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+];
+let pdfLibsReady = null;
+function loadScript(src){
+  return new Promise((ok, fail)=>{
+    const s = document.createElement("script");
+    s.src = src; s.onload = ok; s.onerror = ()=>fail(new Error("No se pudo cargar "+src));
+    document.head.appendChild(s);
+  });
+}
+function loadPdfLibs(){
+  if(!pdfLibsReady) pdfLibsReady = Promise.all(PDF_LIBS.map(loadScript)).catch(e=>{ pdfLibsReady = null; throw e; });
+  return pdfLibsReady;
+}
+function pdfFileName(){
+  const slug = state.nombre.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+  return "reporte-bienvenida-vivo47"+(slug ? "-"+slug : "")+".pdf";
+}
+
+async function buildPdf(){
+  await loadPdfLibs();
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+
+  const sheet = el("div","pdf-sheet pdf-light");
+  const first = state.nombre.trim().split(" ")[0] || "";
+  const today = new Date().toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
+
+  const head = el("div","pdf-block pdf-head");
+  head.innerHTML = '<div class="brand-mark">47</div><div><div class="pdf-title">Tu reporte de bienvenida</div>'+
+    '<div class="pdf-sub">Vivo 47 Center · '+escapeHtml(today)+'</div></div>';
+  sheet.appendChild(head);
+
+  const intro = el("div","pdf-block pdf-intro");
+  intro.innerHTML = '<h2>'+escapeHtml(first ? first+", ya diste el primer paso." : "Ya diste el primer paso.")+'</h2>'+
+    '<p>Te esperamos el '+escapeHtml(fmtDate(state.diaVemos)||"día acordado")+'. Aquí tienes a tu equipo, las recomendaciones para ti y el resumen de tus respuestas.</p>';
+  sheet.appendChild(intro);
+
+  const blocks = reportBlocks();
+  const summary = blocks.pop();
+  blocks.forEach(b=>{ b.classList.add("pdf-block"); sheet.appendChild(b); });
+  const summaryBlock = el("div","pdf-block");
+  summaryBlock.appendChild(el("div","team-title","Resumen de tus respuestas"));
+  summaryBlock.appendChild(summary);
+  sheet.appendChild(summaryBlock);
+  sheet.appendChild(el("div","pdf-block pdf-foot","Real. Posible. Tuyo."));
+  document.body.appendChild(sheet);
+
+  try{
+    await Promise.all(Array.from(sheet.querySelectorAll("img")).map(img=> img.complete ? Promise.resolve() : new Promise(r=>{ img.onload = img.onerror = r; })));
+    const doc = new window.jspdf.jsPDF({unit:"mm", format:"a4"});
+    const pageW = 210, pageH = 297, margin = 14, gap = 4, usableW = pageW - 2*margin;
+    const paint = ()=>{ doc.setFillColor(250,250,249); doc.rect(0, 0, pageW, pageH, "F"); };
+    paint();
+    let y = margin;
+    for(const block of Array.from(sheet.children)){
+      const canvas = await window.html2canvas(block, {scale:2, backgroundColor:"#FAFAF9", useCORS:true, logging:false});
+      const h = canvas.height * usableW / canvas.width;
+      if(y > margin && y + h > pageH - margin){ doc.addPage(); paint(); y = margin; }
+      doc.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, y, usableW, h);
+      y += h + gap;
+    }
+    return doc;
+  } finally {
+    sheet.remove();
+  }
+}
+
+async function downloadPdf(btn, statusEl){
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Preparando tu PDF…";
+  try{
+    const doc = await buildPdf();
+    doc.save(pdfFileName());
+  }catch(e){
+    statusEl.textContent = "No pudimos crear el PDF. Inténtalo de nuevo.";
+    statusEl.className = "status-msg err";
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+function renderOutro(){
+  stepCountEl.textContent = "Listo";
+  progressFill.style.width = "100%";
+  stage.innerHTML = "";
+
+  const hero = el("div","hero");
+  const firstName = state.nombre.trim().split(" ")[0] || "";
+  hero.innerHTML =
+    '<span class="kicker"><span class="kdot"></span>Real. Posible. Tuyo.</span>'+
+    '<h1>'+(firstName? firstName+", ya":"Ya")+' diste el primer paso.</h1>'+
+    '<p>Envía tu resumen a Center por WhatsApp para que el equipo deportivo lo revise antes de tu sesión del '+(fmtDate(state.diaVemos)||"día acordado")+'.</p>';
+
+  reportBlocks().forEach(b=>hero.appendChild(b));
 
   const actions = el("div","actions-row");
   const waLink = document.createElement("a");
@@ -828,13 +940,19 @@ function renderOutro(){
   waLink.href = buildWhatsAppLink();
   actions.appendChild(waLink);
 
+  const statusMsg = el("div","status-msg","Guardando tu ficha…");
+
+  const pdfBtn = el("button","cal-btn","Descargar mi reporte en PDF ↓");
+  pdfBtn.type = "button";
+  pdfBtn.onclick = ()=>downloadPdf(pdfBtn, statusMsg);
+  actions.appendChild(pdfBtn);
+
   const calLink = document.createElement("a");
   calLink.className = "cal-btn"; calLink.target = "_blank"; calLink.rel="noopener";
   calLink.innerHTML = "Agregar a mi calendario mi primer día →";
   calLink.href = buildCalendarLink();
   actions.appendChild(calLink);
 
-  const statusMsg = el("div","status-msg","Guardando tu ficha…");
   actions.appendChild(statusMsg);
 
   hero.appendChild(actions);
