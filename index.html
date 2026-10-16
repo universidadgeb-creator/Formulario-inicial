@@ -1208,7 +1208,7 @@ async function saveResponse(statusEl){
 // A participant's answer does not create an Authentication user.
 // URL del dashboard (Firebase Hosting) cuando esté desplegado, p. ej. "https://PROYECTO.web.app/?section=encuestas".
 // Vacía = no se muestra el enlace del equipo.
-const DASHBOARD_URL = "";
+const DASHBOARD_URL = "https://center-2026.web.app/?section=encuestas";
 if(DASHBOARD_URL){
   document.getElementById('coachLink').href = DASHBOARD_URL;
   if(location.hash === '#admin') location.replace(DASHBOARD_URL);
