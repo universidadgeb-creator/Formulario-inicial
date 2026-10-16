@@ -372,7 +372,7 @@ button.cal-btn:disabled{opacity:.6;cursor:progress;}
   <div class="stage" id="stage"></div>
 </div>
 
-<a class="coach-link" href="#admin" id="coachLink">Admin →</a>
+<a class="coach-link" href="#admin" id="coachLink">Acceso del equipo →</a>
 
 <div class="coach-panel" id="coachPanel" hidden>
   <a class="coach-back" href="#" id="coachBack">← Volver al formulario</a>
@@ -443,10 +443,24 @@ function shiftLines(m){
 const CENTER_WHATSAPP = "523351290760";
 
 // Firebase: Configuración del proyecto → Tus apps → app web. La apiKey es pública por diseño
-// (la seguridad está en firebase/firestore.rules). ADMIN_EMAIL es el correo del usuario administrador.
+// La autorización está en firestore.rules, no en esta clave pública.
 const FIREBASE_API_KEY = "AIzaSyD8dLUbCV1ntO2qTCZdAaD64MBo6hg3VTg";
 const FIREBASE_PROJECT_ID = "center-2026";
-const ADMIN_EMAIL = "admin@center.com";
+const SURVEY_COLLECTION = "respuestas";
+// Replace only after GEB approves the actual legal notice and version.
+// Aviso publicado por Center. approved queda en false hasta que GEB confirme que ese aviso cubre esta
+// encuesta (el vigente dice que su formulario no recaba datos de salud). Con approved:true se habilita el envío.
+const PRIVACY_NOTICE = {
+  text: "Tus datos serán tratados por GIMNASIOS AMERICANOS, S.A. de C.V. (VIVO47 Center) conforme a su aviso de privacidad.",
+  url: "https://center.vivo47.com/aviso-de-privacidad",
+  version: "center.vivo47.com/aviso-de-privacidad, actualización del 17 de septiembre de 2026",
+  approved: false
+};
+// Register this web app in App Check before configuring these public values.
+const WELCOME_APP_CHECK = { appId: "", siteKey: "" };
+let privacyAccepted = false, privacyAcceptedAt = "";
+function privacyReady(){ return privacyAccepted && (!FB_READY || PRIVACY_NOTICE.approved); }
+
 
 const INCONSISTENTES = ["Nunca he sido constante","Estoy retomando","Entreno ocasionalmente"];
 
@@ -751,6 +765,21 @@ const stage = document.getElementById("stage");
 const stepCountEl = document.getElementById("stepCount");
 const progressFill = document.getElementById("progressFill");
 
+steps.push({
+  key:"privacidad", eyebrow:"Privacidad", title:"Antes de enviar tu ficha",
+  sub:"La ficha incluye nombre, teléfono, metas y condición física.",
+  render(c){
+    const notice=el("div","field");notice.setAttribute("role","note");
+    const heading=el("strong","","Aviso de privacidad");notice.appendChild(heading);
+    const text=document.createElement("p");text.textContent=PRIVACY_NOTICE.text;notice.appendChild(text);c.appendChild(notice);
+    const link=document.createElement("a");link.href=PRIVACY_NOTICE.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Leer el aviso de privacidad completo";link.style.textDecoration="underline";notice.appendChild(link);
+    const label=el("label","field");const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.required=true;checkbox.id="privacyConsent";checkbox.checked=privacyAccepted;
+    checkbox.onchange=()=>{privacyAccepted=checkbox.checked;privacyAcceptedAt=privacyAccepted?new Date().toISOString():"";updateNav();};
+    label.appendChild(checkbox);label.appendChild(document.createTextNode(" He leído el aviso de privacidad y otorgo mi consentimiento expreso para el tratamiento de mis datos personales, incluidos los datos sensibles sobre mi salud y condición física, para las finalidades indicadas en ese aviso."));c.appendChild(label);
+    if(!PRIVACY_NOTICE.approved)c.appendChild(el("p","q-sub","Pendiente: GEB debe confirmar que este aviso cubre la encuesta (datos de salud y condición física). Mientras tanto solo se admiten ensayos locales."));
+  }, valid:()=>privacyReady()
+});
+
 function renderIntro(){
   stepCountEl.textContent = "Inicio";
   progressFill.style.width = "0%";
@@ -764,7 +793,7 @@ function renderIntro(){
   btn.onclick = ()=>{ stepIndex=0; renderStep(); };
   hero.appendChild(btn);
   const foot = el("div","hero-foot");
-  foot.appendChild(el("div","note mono", steps.length+" preguntas · menos de 3 minutos"));
+  foot.appendChild(el("div","note mono", steps.filter(st=>st.key!=="privacidad").length+" preguntas · menos de 3 minutos"));
   hero.appendChild(foot);
   stage.appendChild(hero);
 }
@@ -920,6 +949,7 @@ async function downloadPdf(btn, statusEl){
 }
 
 function renderOutro(){
+  if(!privacyReady()) return;
   stepCountEl.textContent = "Listo";
   progressFill.style.width = "100%";
   stage.innerHTML = "";
@@ -1048,19 +1078,20 @@ function goNext(){
 }
 
 /* ---------------- PERSISTENCE (Firebase) ----------------
-   Con FIREBASE_API_KEY, FIREBASE_PROJECT_ID y ADMIN_EMAIL configurados, cada
+   Con FIREBASE_API_KEY y FIREBASE_PROJECT_ID configurados, cada
    encuesta se guarda en la colección "respuestas" de Firestore (reglas en
    firebase/firestore.rules). Sin ellos, se guarda solo en este navegador para
-   poder probar. Se usa la API REST de Firebase: no hay librerías que cargar. */
+   poder probar. Se usa REST; App Check carga su SDK solo si se configura. */
 
-const FB_READY = !!(FIREBASE_API_KEY && FIREBASE_PROJECT_ID && ADMIN_EMAIL);
+const FB_READY = !!(FIREBASE_API_KEY && FIREBASE_PROJECT_ID) && location.protocol === "https:" && !["localhost","127.0.0.1", ""].includes(location.hostname) && !location.hostname.endsWith(".chatgpt.site");
 const FS_ROOT = "projects/"+FIREBASE_PROJECT_ID+"/databases/(default)/documents";
 const FS_BASE = "https://firestore.googleapis.com/v1/"+FS_ROOT;
-const AUTH_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="+FIREBASE_API_KEY;
+
 const LOCAL_RESPONSES_KEY = "vivo47_responses_local_v2";
 
 function toRow(s){
   return {
+    consentimiento: privacyAccepted, avisoVersion: PRIVACY_NOTICE.version, consentimientoEn: privacyAcceptedAt,
     nombre: s.nombre.trim(),
     lada: s.lada.trim(),
     telefono: s.telefono.replace(/[^0-9]/g,""),
@@ -1080,6 +1111,7 @@ function toRow(s){
 }
 
 function toFsValue(v){
+  if(typeof v === "boolean") return {booleanValue:v};
   if(Array.isArray(v)) return v.length ? {arrayValue:{values:v.map(toFsValue)}} : {arrayValue:{}};
   return {stringValue:String(v)};
 }
@@ -1102,11 +1134,25 @@ function fromFsDoc(doc){
   return row;
 }
 
+let welcomeCheck;
+async function welcomeAppCheckToken(){
+  if(!WELCOME_APP_CHECK.appId || !WELCOME_APP_CHECK.siteKey) return null;
+  if(!welcomeCheck)welcomeCheck=Promise.all([
+    import("https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/13.0.0/firebase-app-check.js")
+  ]).then(([app,check])=>{
+    const instance=app.initializeApp({apiKey:FIREBASE_API_KEY,projectId:FIREBASE_PROJECT_ID,appId:WELCOME_APP_CHECK.appId},"welcome-app-check");
+    const service=check.initializeAppCheck(instance,{provider:new check.ReCaptchaEnterpriseProvider(WELCOME_APP_CHECK.siteKey),isTokenAutoRefreshEnabled:true});
+    return ()=>check.getToken(service,false);
+  }).catch(e=>{welcomeCheck=null;throw e;});
+  return (await(await welcomeCheck)()).token;
+}
 async function fsFetch(url, opts){
   const o = opts || {};
+  const appCheckToken = await welcomeAppCheckToken();
   const res = await fetch(url, {
     method: o.method || "GET",
-    headers: Object.assign({"Content-Type":"application/json"}, o.token ? {"Authorization":"Bearer "+o.token} : {}),
+    headers: Object.assign({"Content-Type":"application/json"}, appCheckToken ? {"X-Firebase-AppCheck":appCheckToken} : {}, o.token ? {"Authorization":"Bearer "+o.token} : {}),
     body: o.body ? JSON.stringify(o.body) : undefined
   });
   const text = await res.text();
@@ -1121,44 +1167,6 @@ async function fsFetch(url, opts){
   return data;
 }
 
-let fbIdToken = "";
-let fbTokenAt = 0;
-async function fbSignIn(pw){
-  try{
-    const d = await fsFetch(AUTH_URL, {method:"POST", body:{email:ADMIN_EMAIL, password:pw, returnSecureToken:true}});
-    fbIdToken = d.idToken; fbTokenAt = Date.now();
-    return true;
-  }catch(e){
-    if(/INVALID_PASSWORD|INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|USER_DISABLED/.test(e.code || "")) return false;
-    throw e;
-  }
-}
-async function fbToken(pw){
-  if(!fbIdToken || Date.now() - fbTokenAt > 50*60*1000){
-    if(!(await fbSignIn(pw))) throw new Error("PASSWORD_INCORRECTA");
-  }
-  return fbIdToken;
-}
-async function fbList(pw){
-  const token = await fbToken(pw);
-  let rows = [], pageToken = "";
-  do{
-    const d = await fsFetch(FS_BASE+"/respuestas?pageSize=300"+(pageToken ? "&pageToken="+encodeURIComponent(pageToken) : ""), {token:token});
-    (d.documents || []).forEach(doc=>rows.push(fromFsDoc(doc)));
-    pageToken = d.nextPageToken || "";
-  }while(pageToken);
-  return rows.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
-}
-async function fbRemove(pw, ids){
-  const token = await fbToken(pw);
-  for(let i = 0; i < ids.length; i += 400){
-    const writes = ids.slice(i, i+400).map(id=>({"delete": FS_ROOT+"/respuestas/"+id}));
-    const d = await fsFetch(FS_BASE+":batchWrite", {method:"POST", token:token, body:{writes:writes}});
-    if((d.status || []).some(st=>st.code)) throw new Error("No se pudo borrar");
-  }
-  return ids.length;
-}
-
 function readLocal(){
   try{ return JSON.parse(localStorage.getItem(LOCAL_RESPONSES_KEY)||"[]"); }catch(e){ return []; }
 }
@@ -1171,11 +1179,12 @@ function saveLocal(row){
 }
 
 async function saveResponse(statusEl){
+  if(!privacyReady()){statusEl.textContent="Revisa el aviso de privacidad y confirma el consentimiento antes de enviar.";return;}
   const row = toRow(state);
   let saved = false;
   if(FB_READY){
     try{
-      await fsFetch(FS_BASE+"/respuestas?key="+FIREBASE_API_KEY, {method:"POST", body:{fields:toFsFields(row)}});
+      await fsFetch(FS_BASE+"/"+SURVEY_COLLECTION+"?key="+FIREBASE_API_KEY, {method:"POST", body:{fields:toFsFields(row)}});
       saved = true;
     }catch(e){
       statusEl.textContent = "No pudimos guardar tu respuesta en este momento. Puedes enviarla por WhatsApp igualmente.";
@@ -1187,300 +1196,25 @@ async function saveResponse(statusEl){
     saved = true;
   }
   if(saved){
-    statusEl.textContent = "";
+    statusEl.textContent = FB_READY ? "Tu respuesta quedó guardada." : "Vista de ensayo: esta respuesta se guardó únicamente en este navegador.";
     statusEl.className = "status-msg";
     try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   }
 }
 
-/* ---------------- ADMIN ----------------
-   Con Firebase, la contraseña es la de la cuenta de administrador de Firebase
-   Auth (ADMIN_EMAIL) y las reglas de Firestore solo dejan leer y borrar a esa
-   cuenta. Sin Firebase, el panel solo muestra lo guardado en este navegador. */
-
-const store = FB_READY ? {
-  local: false,
-  login: pw => fbSignIn(pw),
-  list: pw => fbList(pw),
-  remove: (pw, ids) => fbRemove(pw, ids),
-  removeAll: async pw => fbRemove(pw, (await fbList(pw)).map(r=>r.id))
-} : {
-  local: true,
-  login: async () => true,
-  list: async () => readLocal(),
-  remove: async (pw, ids) => { writeLocal(readLocal().filter(r=>!ids.includes(r.id))); return ids.length; },
-  removeAll: async () => { const n = readLocal().length; writeLocal([]); return n; }
-};
-
-const adminPanel = document.getElementById("coachPanel");
-const formApp = document.getElementById("formApp");
-const adminLink = document.getElementById("coachLink");
-const adminBack = document.getElementById("coachBack");
-const adminBody = document.getElementById("adminBody");
-
-let adminPw = "";
-try{ adminPw = sessionStorage.getItem("vivo47_admin_pw") || ""; }catch(e){}
-let adminRows = [];
-let adminSel = new Set();
-let adminFilter = "";
-
-function showAdmin(){
-  formApp.hidden = true; adminPanel.hidden = false; adminLink.hidden = true;
-  if(store.local || adminPw) loadAdmin(); else adminLoginView("");
+/* ---------------- ADMINISTRATION ---------------- */
+// Individual accounts and results are managed in the retention dashboard.
+// A participant's answer does not create an Authentication user.
+// URL del dashboard (Firebase Hosting) cuando esté desplegado, p. ej. "https://PROYECTO.web.app/?section=encuestas".
+// Vacía = no se muestra el enlace del equipo.
+const DASHBOARD_URL = "";
+if(DASHBOARD_URL){
+  document.getElementById('coachLink').href = DASHBOARD_URL;
+  if(location.hash === '#admin') location.replace(DASHBOARD_URL);
+} else {
+  document.getElementById('coachLink').hidden = true;
 }
-function hideAdmin(){
-  adminPanel.hidden = true; formApp.hidden = false; adminLink.hidden = false;
-}
-adminLink.onclick = e=>{ e.preventDefault(); showAdmin(); };
-adminBack.onclick = e=>{ e.preventDefault(); hideAdmin(); };
-if(location.hash === "#admin") showAdmin();
-
-function adminLogout(){
-  adminPw = "";
-  try{ sessionStorage.removeItem("vivo47_admin_pw"); }catch(e){}
-  adminLoginView("");
-}
-
-function adminLoginView(msg){
-  adminBody.innerHTML = "";
-  const box = el("div","admin-login");
-  box.appendChild(el("p","admin-hint","Escribe la contraseña de administración para ver los resultados."));
-  const input = document.createElement("input");
-  input.type = "password"; input.placeholder = "Contraseña"; input.autocomplete = "current-password";
-  const btn = el("button","btn btn-primary","Entrar");
-  const err = el("div","status-msg err", msg);
-  const go = async ()=>{
-    const pw = input.value;
-    if(!pw) return;
-    btn.disabled = true; err.textContent = "";
-    try{
-      const ok = await store.login(pw);
-      if(!ok){ err.textContent = "Contraseña incorrecta."; btn.disabled = false; return; }
-      adminPw = pw;
-      try{ sessionStorage.setItem("vivo47_admin_pw", pw); }catch(e){}
-      loadAdmin();
-    }catch(e){
-      err.textContent = "No pudimos conectar con la base de datos. Revisa tu conexión e inténtalo de nuevo.";
-      btn.disabled = false;
-    }
-  };
-  btn.onclick = go;
-  input.onkeydown = e=>{ if(e.key === "Enter") go(); };
-  const row = el("div","admin-login-row");
-  row.appendChild(input); row.appendChild(btn);
-  box.appendChild(row); box.appendChild(err);
-  adminBody.appendChild(box);
-  setTimeout(()=>input.focus(), 30);
-}
-
-async function loadAdmin(){
-  adminBody.innerHTML = '<p class="admin-hint">Cargando…</p>';
-  try{
-    adminRows = await store.list(adminPw);
-    adminSel = new Set();
-    renderDashboard();
-  }catch(e){
-    if(String(e.message).indexOf("PASSWORD_INCORRECTA") > -1){ adminLogout(); adminLoginView("La contraseña ya no es válida."); return; }
-    adminBody.innerHTML = "";
-    adminBody.appendChild(el("p","admin-hint","No pudimos cargar los resultados."));
-    const retry = el("button","btn btn-ghost","Reintentar");
-    retry.onclick = loadAdmin;
-    adminBody.appendChild(retry);
-  }
-}
-
-function tally(rows, pick, label){
-  const m = {};
-  rows.forEach(r=>{
-    [].concat(pick(r) || []).forEach(v=>{
-      if(v === null || v === undefined || v === "") return;
-      const k = label ? label(v) : v;
-      m[k] = (m[k] || 0) + 1;
-    });
-  });
-  return Object.keys(m).map(k=>[k, m[k]]).sort((a,b)=>b[1]-a[1]);
-}
-
-function barsCard(title, entries, total){
-  const card = el("div","bars-card");
-  card.appendChild(el("h3","bars-title", title));
-  if(!entries.length){ card.appendChild(el("p","admin-hint","Sin datos todavía.")); return card; }
-  entries.forEach(([label, n])=>{
-    const pct = total ? Math.round(n*100/total) : 0;
-    const row = el("div","bar-row");
-    row.innerHTML = '<div class="bar-label">'+escapeHtml(label)+'</div>'+
-      '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div>'+
-      '<div class="bar-num">'+n+' <span>· '+pct+'%</span></div>';
-    card.appendChild(row);
-  });
-  return card;
-}
-
-function fmtDateTime(iso){
-  const d = new Date(iso);
-  return isNaN(d) ? "" : d.toLocaleString("es-MX", {dateStyle:"short", timeStyle:"short"});
-}
-function gymNames(arr){ return (arr||[]).map(z=>GYM_ZONE_NAMES[z]||z); }
-
-function renderDashboard(){
-  const rows = adminRows;
-  const total = rows.length;
-  adminBody.innerHTML = "";
-
-  if(store.local){
-    adminBody.appendChild(el("p","admin-hint","Modo de prueba: Firebase no está configurado, así que solo se ven las respuestas enviadas desde este navegador."));
-  }
-
-  const week = Date.now() - 7*24*3600*1000;
-  const last7 = rows.filter(r=>new Date(r.created_at).getTime() >= week).length;
-  const pct = n => total ? Math.round(n*100/total)+"%" : "—";
-  const kpis = el("div","kpis");
-  [
-    ["Respuestas", String(total)],
-    ["Últimos 7 días", String(last7)],
-    ["Bloque matutino", pct(rows.filter(r=>r.horario==="Bloque matutino").length)],
-    ["Retomando o poco constantes", pct(rows.filter(r=>INCONSISTENTES.includes(r.relacion)).length)]
-  ].forEach(([k,v])=>{
-    const c = el("div","kpi");
-    c.innerHTML = '<div class="kpi-num">'+escapeHtml(v)+'</div><div class="kpi-label">'+escapeHtml(k)+'</div>';
-    kpis.appendChild(c);
-  });
-  adminBody.appendChild(kpis);
-
-  const bars = el("div","bars");
-  bars.appendChild(barsCard("Objetivo principal", tally(rows, r=>r.objetivo), total));
-  bars.appendChild(barsCard("Días a la semana", tally(rows, r=>r.dias), total));
-  bars.appendChild(barsCard("Horario", tally(rows, r=>r.horario), total));
-  bars.appendChild(barsCard("Tiempo por sesión", tally(rows, r=>r.duracion), total));
-  bars.appendChild(barsCard("Capacidad a trabajar", tally(rows, r=>r.capacidad), total));
-  bars.appendChild(barsCard("Áreas de Center", tally(rows, r=>r.zonas_gym, v=>GYM_ZONE_NAMES[v]||v), total));
-  bars.appendChild(barsCard("Relación con el ejercicio", tally(rows, r=>r.relacion), total));
-  bars.appendChild(barsCard("Condición física", tally(rows, r=>r.condicion), total));
-  bars.appendChild(barsCard("Por qué abandonaron antes", tally(rows, r=>r.abandono), total));
-  adminBody.appendChild(bars);
-
-  const head = el("div","admin-toolbar");
-  head.appendChild(el("h3","bars-title","Respuestas"));
-  const search = document.createElement("input");
-  search.type = "text"; search.placeholder = "Buscar por nombre o teléfono"; search.value = adminFilter;
-  search.oninput = e=>{ adminFilter = e.target.value.toLowerCase(); renderTable(); };
-  head.appendChild(search);
-  adminBody.appendChild(head);
-
-  const actions = el("div","admin-actions");
-  const btnDelSel = el("button","btn btn-ghost","Borrar seleccionados");
-  btnDelSel.id = "btnDelSel";
-  btnDelSel.onclick = deleteSelected;
-  const btnCsv = el("button","btn btn-ghost","Exportar CSV");
-  btnCsv.onclick = exportCsv;
-  const btnRefresh = el("button","btn btn-ghost","Actualizar");
-  btnRefresh.onclick = loadAdmin;
-  const btnAll = el("button","btn btn-ghost danger","Borrar todo");
-  btnAll.onclick = deleteAll;
-  actions.appendChild(btnRefresh); actions.appendChild(btnCsv);
-  actions.appendChild(btnDelSel); actions.appendChild(btnAll);
-  if(!store.local){
-    const out = el("button","btn btn-ghost","Cerrar sesión");
-    out.onclick = adminLogout;
-    actions.appendChild(out);
-  }
-  adminBody.appendChild(actions);
-
-  const wrap = el("div","admin-table-wrap");
-  wrap.id = "adminTableWrap";
-  adminBody.appendChild(wrap);
-  renderTable();
-}
-
-function renderTable(){
-  const wrap = document.getElementById("adminTableWrap");
-  if(!wrap) return;
-  const rows = adminRows.filter(r=>((r.nombre||"")+" "+(r.telefono||"")).toLowerCase().indexOf(adminFilter) > -1);
-  wrap.innerHTML = "";
-  const delBtn = document.getElementById("btnDelSel");
-  if(delBtn) delBtn.textContent = adminSel.size ? "Borrar seleccionados ("+adminSel.size+")" : "Borrar seleccionados";
-  if(!rows.length){
-    wrap.appendChild(el("p","admin-hint", adminRows.length ? "Ninguna respuesta coincide con la búsqueda." : "Todavía no hay respuestas."));
-    return;
-  }
-  const table = el("table","admin-table");
-  const thead = el("thead");
-  const hr = el("tr");
-  const allBox = document.createElement("input");
-  allBox.type = "checkbox";
-  allBox.checked = rows.every(r=>adminSel.has(r.id));
-  allBox.onchange = ()=>{ rows.forEach(r=>{ if(allBox.checked) adminSel.add(r.id); else adminSel.delete(r.id); }); renderTable(); };
-  const th0 = el("th"); th0.appendChild(allBox); hr.appendChild(th0);
-  ["Fecha","Nombre","Teléfono","Objetivo","Horario"].forEach(t=>hr.appendChild(el("th","",t)));
-  thead.appendChild(hr); table.appendChild(thead);
-  const tbody = el("tbody");
-  rows.forEach(r=>{
-    const tr = el("tr","admin-row");
-    const td0 = el("td");
-    const box = document.createElement("input");
-    box.type = "checkbox"; box.checked = adminSel.has(r.id);
-    box.onclick = e=>e.stopPropagation();
-    box.onchange = ()=>{ if(box.checked) adminSel.add(r.id); else adminSel.delete(r.id); renderTable(); };
-    td0.appendChild(box); tr.appendChild(td0);
-    [fmtDateTime(r.created_at), r.nombre, (r.lada||"")+" "+(r.telefono||""), r.objetivo, (r.horario||"").replace("Bloque ","")].forEach(v=>{
-      tr.appendChild(el("td","",escapeHtml(v||"—")));
-    });
-    const detail = el("tr","admin-detail");
-    detail.hidden = true;
-    const dtd = el("td"); dtd.colSpan = 6;
-    dtd.innerHTML = '<div class="coach-grid">'+
-      '<div class="k">Meta 90 días</div><div>'+escapeHtml(r.meta90||"—")+'</div>'+
-      '<div class="k">Entrenamiento</div><div>'+escapeHtml([r.dias,r.horario,r.duracion].filter(Boolean).join(" · ")||"—")+'</div>'+
-      '<div class="k">Capacidad física</div><div>'+escapeHtml((r.capacidad||[]).join(", ")||"—")+'</div>'+
-      '<div class="k">Áreas de Center</div><div>'+escapeHtml(gymNames(r.zonas_gym).join(", ")||"—")+'</div>'+
-      '<div class="k">Relación con ejercicio</div><div>'+escapeHtml(r.relacion||"—")+'</div>'+
-      '<div class="k">Condición física</div><div>'+escapeHtml(r.condicion||"—")+'</div>'+
-      '<div class="k">Motivos de abandono</div><div>'+escapeHtml((r.abandono||[]).join(", ")||"—")+'</div>'+
-      '<div class="k">Frase de rescate</div><div>'+escapeHtml(r.frase||"—")+'</div>'+
-      '<div class="k">Primer día en Center</div><div>'+escapeHtml(fmtDate(r.dia_vemos)||"—")+'</div>'+
-    '</div>';
-    detail.appendChild(dtd);
-    tr.onclick = ()=>{ detail.hidden = !detail.hidden; };
-    tbody.appendChild(tr); tbody.appendChild(detail);
-  });
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-}
-
-async function deleteSelected(){
-  const ids = Array.from(adminSel);
-  if(!ids.length){ alert("Selecciona al menos un registro con las casillas de la izquierda."); return; }
-  if(!confirm("¿Borrar "+ids.length+" registro(s)? No se puede deshacer.")) return;
-  try{ await store.remove(adminPw, ids); await loadAdmin(); }
-  catch(e){ alert("No pudimos borrar. Inténtalo de nuevo."); }
-}
-async function deleteAll(){
-  if(!adminRows.length){ alert("No hay registros que borrar."); return; }
-  const t = prompt("Esto borra TODOS los registros ("+adminRows.length+"). Escribe BORRAR para confirmar.");
-  if(t !== "BORRAR") return;
-  try{ await store.removeAll(adminPw); await loadAdmin(); }
-  catch(e){ alert("No pudimos borrar. Inténtalo de nuevo."); }
-}
-
-function csvCell(v){
-  const s = Array.isArray(v) ? v.join("; ") : (v === null || v === undefined ? "" : String(v));
-  return '"' + s.replace(/"/g, '""') + '"';
-}
-function exportCsv(){
-  if(!adminRows.length){ alert("No hay registros que exportar."); return; }
-  const NL = String.fromCharCode(10);
-  const head = ["Fecha","Nombre","Teléfono","Objetivo","Meta 90 días","Días","Horario","Duración","Capacidad física","Áreas de Center","Relación con ejercicio","Condición física","Motivos de abandono","Frase de rescate","Primer día en Center"];
-  const lines = [head.map(csvCell).join(",")].concat(adminRows.map(r=>[
-    r.created_at, r.nombre, (r.lada||"")+" "+(r.telefono||""), r.objetivo, r.meta90, r.dias, r.horario, r.duracion,
-    r.capacidad, gymNames(r.zonas_gym), r.relacion, r.condicion, r.abandono, r.frase, r.dia_vemos
-  ].map(csvCell).join(",")));
-  const blob = new Blob(["﻿"+lines.join(NL)], {type:"text/csv;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "encuesta-bienvenida-vivo47.csv";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-}
+try { sessionStorage.removeItem('vivo47_admin_pw'); } catch(e) {}
 
 /* ---------------- INIT ---------------- */
 renderIntro();

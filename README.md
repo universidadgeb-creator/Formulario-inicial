@@ -1,45 +1,34 @@
 # Encuesta de bienvenida — Vivo 47 Center
 
-Encuesta interactiva para nuevos socios de Vivo 47 Center. Es un sitio estático (un solo `index.html`, sin build ni librerías) publicado con GitHub Pages: https://universidadgeb-creator.github.io/Formulario-inicial/
+Encuesta pública para nuevos socios. Es un sitio estático (un solo `index.html`, sin build) que guarda cada respuesta en Firestore (`respuestas`). **Los resultados se consultan en el dashboard de retención**, no aquí.
 
-## Qué incluye
+> Esta rama (`unificacion-dashboard`) es la versión integrada con el dashboard. Se basa en `public/bienvenida/` de la entrega de Ceci y **no está publicada**: GitHub Pages sigue sirviendo `main`.
 
-- Encuesta paso a paso (12 preguntas) con borrador guardado en el navegador.
-- Plano de Center clicable y selección múltiple de capacidades.
-- Pantalla final con el equipo del bloque elegido, recomendaciones, botón para enviar el resumen al WhatsApp de Center y botón para agregar la primera sesión al calendario.
-- Panel **Admin** (enlace en la esquina, o `/#admin`) con contraseña: resumen de resultados, tabla, búsqueda, exportar CSV y borrado de registros.
+## Qué cambia respecto a `main`
 
-## Conectar Firebase (una sola vez)
+- Se retiró el panel Admin con contraseña. El equipo entra al dashboard con sus usuarios individuales; `DASHBOARD_URL` (en `index.html`) pone el enlace "Acceso del equipo" cuando el dashboard esté desplegado.
+- Nuevo paso de **aviso de privacidad** con casilla de consentimiento. Se guarda `consentimiento`, `avisoVersion` y `consentimientoEn` junto a cada respuesta.
+- Soporte opcional de App Check (`WELCOME_APP_CHECK`), apagado hasta registrar la app.
+- `firebase/firestore.rules` es el de la entrega: acepta los campos de consentimiento, mantiene el esquema anterior y cierra `vivo47Dashboard` y `vivo47Config`.
 
-1. En [console.firebase.google.com](https://console.firebase.google.com) crea un proyecto (Analytics no hace falta).
-2. **Authentication → Comenzar → Correo electrónico/contraseña → Habilitar.** Luego **Usuarios → Agregar usuario**: pon un correo y la contraseña de administración. Ese correo y esa contraseña son los del panel Admin (en el panel solo se escribe la contraseña).
-3. **Firestore Database → Crear base de datos** (modo producción; elige la región más cercana).
-4. **Firestore → Reglas**: pega `firebase/firestore.rules`, cambia `admin@CAMBIA.com` por el correo del paso 2 y presiona **Publicar**.
-5. **Configuración del proyecto (engrane) → Tus apps → `</>` Web**: registra una app y copia `apiKey` y `projectId`.
-6. En `index.html` completa:
+## Aviso de privacidad (pendiente de GEB)
 
-   ```js
-   const FIREBASE_API_KEY = "AIza...";
-   const FIREBASE_PROJECT_ID = "mi-proyecto";
-   const ADMIN_EMAIL = "el-correo-del-paso-2";
-   ```
+El paso enlaza https://center.vivo47.com/aviso-de-privacidad (actualización del 17 de septiembre de 2026). Ese aviso dice que su formulario **no recaba datos de salud**, y esta encuesta pregunta condición física, lesiones o molestias y motivos de abandono. Mientras GEB no confirme que el aviso cubre la encuesta (o publique uno específico), `PRIVACY_NOTICE.approved` queda en `false` y el sitio **no guarda en Firebase**: solo admite ensayos locales. Para habilitarlo, cambiar a `approved:true` y, si el aviso cambia, actualizar `version`.
 
-   La `apiKey` de Firebase es pública por diseño; lo que protege los datos son las reglas del paso 4.
-7. Sube el cambio a `main`; GitHub Pages se actualiza en uno o dos minutos.
+## Firebase
 
-Sin esas tres líneas el sitio sigue funcionando en modo de prueba: las respuestas se guardan solo en el navegador de quien contesta.
+Proyecto `center-2026`, base `(default)`, colección `respuestas`.
 
-## Cómo está protegido
+1. Combinar `firebase/firestore.rules` con las reglas vigentes del proyecto y publicarlas. No publicar un archivo incompleto sobre otras aplicaciones.
+2. La lectura heredada de `respuestas` exige un correo verificado y el documento `vivo47Config/respuestasAccess` (`{"enabled":true,"email":"..."}`) creado con Admin SDK o Console. Sin él, solo el servidor del dashboard (permisos de servicio) lee las respuestas.
+3. Confirmar en Authentication que el registro libre está deshabilitado.
+4. Revisar la restricción de la `apiKey` por dominio y, cuando se registre la app, activar App Check primero en modo de monitoreo.
 
-- Quien llena la encuesta solo puede **agregar** una respuesta con la forma esperada (campos y largos validados por las reglas). No puede leerla, editarla ni borrarla.
-- Solo el usuario administrador de Firebase Auth puede leer y borrar. Firebase limita por sí mismo los intentos fallidos de contraseña.
-- La contraseña de la sesión se guarda en `sessionStorage` y se borra al cerrar la pestaña o al dar "Cerrar sesión".
-- Si quieres restringir la `apiKey`, en Google Cloud Console → Credenciales puedes limitarla al dominio `universidadgeb-creator.github.io`.
-- Los datos son personales (nombre, teléfono, hábitos de salud). Conviene avisar a los socios para qué se usan, y limpiar los registros de prueba antes de abrir al público (Admin → "Borrar todo").
+El dashboard, su despliegue (Hosting + Functions + Authentication + Firestore, plan Blaze) y la vinculación de respuestas con socios por teléfono están documentados en la entrega (`INTEGRACION_CECI.md` y `ACCESO_INSTITUCIONAL.md`).
 
 ## Equipo y plano
 
-- `TEAM` (en el `<script>`): coaches, fotos (`img/equipo/`) y turnos. Cada socio ve a quien trabaja 2 horas o más dentro del bloque que elige; `vacant:true` oculta una vacante.
-- `BLOQUES`: ventanas de los bloques (matutino 5–12, vespertino 12–22).
+- `TEAM`: coaches, fotos (`img/equipo/`) y turnos. Cada socio ve a quien trabaja 2 horas o más dentro del bloque que elige.
+- `BLOQUES`: matutino 5–12, vespertino 12–22.
 - `floorplanSVG()`: plano esquemático de Center.
 - `CENTER_WHATSAPP`: número de Center (código de país + 10 dígitos).

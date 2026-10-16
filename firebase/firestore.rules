@@ -1,25 +1,29 @@
 rules_version = '2';
 
 // Encuesta de bienvenida · Vivo 47 Center
-// Firebase Console → Firestore Database → Reglas → pega este archivo → Publicar.
-// Cambia 'admin@CAMBIA.com' por el correo del usuario administrador (Authentication → Usuarios).
+// Combinar con las reglas existentes de center-2026; NO publicar este archivo directo.
+// La cuenta heredada se configura por Admin SDK en vivo47Config/respuestasAccess.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == 'admin@CAMBIA.com';
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/vivo47Config/respuestasAccess)
+        && get(/databases/$(database)/documents/vivo47Config/respuestasAccess).data.enabled == true
+        && request.auth.token.email == get(/databases/$(database)/documents/vivo47Config/respuestasAccess).data.email;
     }
     function texto(v, max) { return v is string && v.size() <= max; }
     function lista(v, max) { return v is list && v.size() <= max; }
 
+    // Legacy Ceci account retains access to its own questionnaire only.
     match /respuestas/{id} {
       // Quien llena la encuesta solo puede AGREGAR una respuesta con la forma esperada.
       allow create: if request.resource.data.keys().hasOnly([
           'nombre', 'lada', 'telefono', 'objetivo', 'meta90', 'dias', 'horario',
           'duracion', 'capacidad', 'zonas_gym', 'relacion', 'condicion',
-          'abandono', 'frase', 'dia_vemos'
+          'abandono', 'frase', 'dia_vemos', 'consentimiento', 'avisoVersion', 'consentimientoEn'
         ])
         && request.resource.data.keys().hasAll(['nombre', 'lada', 'telefono'])
         && texto(request.resource.data.nombre, 200) && request.resource.data.nombre.size() > 0
@@ -36,11 +40,21 @@ service cloud.firestore {
         && texto(request.resource.data.get('condicion', ''), 100)
         && lista(request.resource.data.get('abandono', []), 10)
         && texto(request.resource.data.get('frase', ''), 500)
-        && texto(request.resource.data.get('dia_vemos', ''), 10);
+        && texto(request.resource.data.get('dia_vemos', ''), 10)
+        // Preserve the original Ceci client's schema. Integrated submissions
+        // include all three consent fields; partial/false receipts are denied.
+        && (!request.resource.data.keys().hasAny(['consentimiento','avisoVersion','consentimientoEn'])
+          || (request.resource.data.keys().hasAll(['consentimiento','avisoVersion','consentimientoEn'])
+            && request.resource.data.consentimiento == true
+            && texto(request.resource.data.avisoVersion,100) && request.resource.data.avisoVersion.size()>0
+            && texto(request.resource.data.consentimientoEn,40) && request.resource.data.consentimientoEn.size()>0));
 
       // Solo la cuenta de administrador puede leer y borrar. Nadie edita.
       allow read, delete: if isAdmin();
       allow update: if false;
     }
+    // Every internal dashboard record goes through the authenticated server.
+    match /vivo47Dashboard/{document=**} { allow read, write: if false; }
+    match /vivo47Config/{document=**} { allow read, write: if false; }
   }
 }
