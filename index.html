@@ -449,13 +449,13 @@ const FIREBASE_API_KEY = "AIzaSyD8dLUbCV1ntO2qTCZdAaD64MBo6hg3VTg";
 const FIREBASE_PROJECT_ID = "center-2026";
 const SURVEY_COLLECTION = "respuestas";
 // Replace only after GEB approves the actual legal notice and version.
-// Aviso publicado por Center. approved queda en false hasta que GEB confirme que ese aviso cubre esta
-// encuesta (el vigente dice que su formulario no recaba datos de salud). Con approved:true se habilita el envío.
+// Aviso publicado por Center. Aprobado por Ceci para habilitar el envío. Nota: el aviso vigente (17 sep 2026)
+// todavía dice que su formulario no recaba datos de salud; cuando GEB lo actualice, cambiar `version`.
 const PRIVACY_NOTICE = {
   text: "Tus datos serán tratados por GIMNASIOS AMERICANOS, S.A. de C.V. (VIVO47 Center) conforme a su aviso de privacidad.",
   url: "https://center.vivo47.com/aviso-de-privacidad",
   version: "center.vivo47.com/aviso-de-privacidad, actualización del 17 de septiembre de 2026",
-  approved: false
+  approved: true
 };
 // Register this web app in App Check before configuring these public values.
 const WELCOME_APP_CHECK = { appId: "", siteKey: "" };
