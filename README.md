@@ -26,6 +26,10 @@ Proyecto `center-2026`, base `(default)`, colección `respuestas`.
 
 El dashboard, su despliegue (Hosting + Functions + Authentication + Firestore, plan Blaze) y la vinculación de respuestas con socios por teléfono están documentados en la entrega (`INTEGRACION_CECI.md` y `ACCESO_INSTITUCIONAL.md`).
 
+## Dirección de la encuesta
+
+La encuesta no se enlaza desde el sitio público de Center: se comparte directo con los socios (WhatsApp, correo o QR) en un subdominio propio. Para que no aparezca en buscadores, `index.html` lleva `noindex, nofollow` y el repo incluye `robots.txt`. Es una petición a los buscadores, no un control de acceso: quien tenga el enlace entra, porque el socio responde sin cuenta.
+
 ## Equipo y plano
 
 - `TEAM`: coaches, fotos (`img/equipo/`) y turnos. Cada socio ve a quien trabaja 2 horas o más dentro del bloque que elige.
