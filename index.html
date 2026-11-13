@@ -334,6 +334,11 @@ svg.floorplan{width:100%;max-width:320px;height:auto;}
 .coach-grid .k{color:var(--muted);}
 @media (max-width:560px){.coach-grid{grid-template-columns:1fr;gap:2px 0;}.coach-grid .k{margin-top:8px;}}
 
+.zone-guide{margin-top:14px;text-align:left;font-size:14px;color:var(--ink);}
+.zone-guide summary{cursor:pointer;font-weight:700;}
+.zone-guide ul{padding-left:20px;margin:10px 0 0;}
+.zone-guide li{margin:6px 0;}
+.date-hint{display:block;margin-top:8px;color:var(--muted);font-size:14px;}
 /* reporte PDF (se dibuja fuera de pantalla, siempre en colores claros) */
 button.cal-btn{cursor:pointer;font-family:inherit;}
 button.cal-btn:disabled{opacity:.6;cursor:progress;}
@@ -398,12 +403,24 @@ const GYM_ZONE_NAMES = {
   salon_clases:"Salón de clases",
   medicion_lab47:"Medición Lab 47",
   funcional_hyrox:"Funcional / Hyrox",
-  fuerza_peso_libre:"Fuerza (Peso libre)",
+  fuerza_peso_libre:"Peso libre (parte superior)",
   movilidad:"Movilidad",
   recovery:"Recovery",
   fuerza_integrado:"Fuerza (Peso integrado)",
-  fuerza_libre_inferior:"Fuerza (Peso libre, planta baja)",
+  fuerza_libre_inferior:"Peso libre (parte inferior)",
   cardio:"Resistencia y Potencia (Cardio)"
+};
+
+const GYM_ZONE_DESCRIPTIONS = {
+  salon_clases:"Actividades grupales como baile y yoga.",
+  medicion_lab47:"Mediciones para conocer tu punto de partida y seguir tu progreso.",
+  funcional_hyrox:"Entrenamiento funcional con movimientos variados.",
+  fuerza_peso_libre:"Mancuernas, barras y discos en la parte superior.",
+  movilidad:"Ejercicios para mejorar el movimiento y la amplitud articular.",
+  recovery:"Espacio para recuperación después de entrenar.",
+  fuerza_integrado:"Máquinas de fuerza con carga integrada.",
+  fuerza_libre_inferior:"Mancuernas, barras y discos en la parte inferior.",
+  cardio:"Equipos de cardio para trabajar la resistencia y la potencia."
 };
 
 // Equipo y horarios. Horas en formato 24h (.5 = y media).
@@ -544,7 +561,7 @@ function floorplanSVG(selected){
   const sel = id => selected.includes(id) ? "zone selected" : "zone";
   const labelCls = id => "gymzone-label"+(selected.includes(id) ? " selected" : "");
   function cell(id,x,y,w,h,short){
-    return '<rect class="'+sel(id)+'" data-zone="'+id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8"><title>'+GYM_ZONE_NAMES[id]+'</title></rect>'+
+    return '<rect class="'+sel(id)+'" data-zone="'+id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8"><title>'+GYM_ZONE_NAMES[id]+': '+GYM_ZONE_DESCRIPTIONS[id]+'</title></rect>'+
            '<text class="'+labelCls(id)+'" x="'+(x+w/2)+'" y="'+(y+h/2+4)+'">'+short+'</text>';
   }
   const cw=84, ch=70, gx=8, gy=8;
@@ -567,7 +584,7 @@ function floorplanSVG(selected){
 
     '<rect class="gymzone-context" x="'+x1+'" y="'+y4+'" width="'+cw+'" height="'+ch+'" rx="8"/>'+
     '<text class="gymzone-context-label" x="'+(x1+cw/2)+'" y="'+(y4+ch/2+3)+'">Vestidores</text>'+
-    cell("fuerza_libre_inferior",x2,y4,cw*2+gx,ch,"Peso libre (planta baja)")+
+    cell("fuerza_libre_inferior",x2,y4,cw*2+gx,ch,"Peso libre (parte inferior)")+
 
     '<rect class="entrance" x="'+(totalW/2-60)+'" y="'+(y4+ch+28)+'" width="120" height="40" rx="10"/>'+
     '<text class="entrance-text" x="'+(totalW/2)+'" y="'+(y4+ch+28+18)+'">Entrada</text>'+
@@ -601,6 +618,17 @@ function renderGymMap(container){
     chips.appendChild(el("span","zone-empty","Toca las zonas del plano que más te interesan"));
   }
   wrap.appendChild(chips);
+  const guide = el("details","zone-guide");
+  guide.appendChild(el("summary","","¿Qué hay en cada área?"));
+  const list = el("ul");
+  Object.entries(GYM_ZONE_NAMES).forEach(([id, name])=>{
+    const row = el("li");
+    row.appendChild(el("strong","",name+": "));
+    row.appendChild(document.createTextNode(GYM_ZONE_DESCRIPTIONS[id]));
+    list.appendChild(row);
+  });
+  guide.appendChild(list);
+  wrap.appendChild(guide);
   container.appendChild(wrap);
 }
 
@@ -753,8 +781,14 @@ const steps = [
       const f = el("div","field");
       const input = document.createElement("input");
       input.type="date"; input.value=state.diaVemos;
+      input.setAttribute("aria-label","Fecha de tu primera visita");
+      input.addEventListener("click", ()=>{
+        try{ input.showPicker?.(); }catch(e){ /* El control nativo sigue disponible. */ }
+      });
       input.oninput = e=>{ state.diaVemos=e.target.value; persistDraft(); updateNav(); };
-      f.appendChild(input); c.appendChild(f);
+      f.appendChild(input);
+      f.appendChild(el("small","date-hint","Toca el campo para elegir la fecha en el calendario."));
+      c.appendChild(f);
     },
     valid:()=> !!state.diaVemos
   }
@@ -963,6 +997,11 @@ function renderOutro(){
     '<p>Envía tu resumen a Center por WhatsApp para que el equipo deportivo lo revise antes de tu sesión del '+(fmtDate(state.diaVemos)||"día acordado")+'.</p>';
 
   reportBlocks().forEach(b=>hero.appendChild(b));
+
+  const teamLink = el("a","cal-btn","Conoce nuestra plantilla completa · PDF ↓");
+  teamLink.href = "./plantilla-vivo47-center.pdf";
+  teamLink.download = "Plantilla_Vivo47_Center.pdf";
+  hero.querySelector(".team-wrap")?.appendChild(teamLink);
 
   const actions = el("div","actions-row");
   const waLink = document.createElement("a");

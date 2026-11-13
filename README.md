@@ -36,3 +36,5 @@ La encuesta no se enlaza desde el sitio público de Center: se comparte directo 
 - `BLOQUES`: matutino 5–12, vespertino 12–22.
 - `floorplanSVG()`: plano esquemático de Center.
 - `CENTER_WHATSAPP`: número de Center (código de país + 10 dígitos).
+
+El botón **Conoce nuestra plantilla completa** descarga `plantilla-vivo47-center.pdf` en la pantalla final. Incluye los coaches y Lab 47 de todos los turnos, sin respuestas de socios. Al actualizar `TEAM`, actualizar también el PDF y la copia de bienvenida del dashboard.
